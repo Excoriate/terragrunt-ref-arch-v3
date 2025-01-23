@@ -1,18 +1,13 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "packages": {
-    "tools/infractl": {
-      "release-type": "go",
-      "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": true
-    },
     "infra/terraform": {
-      "release-type": "terraform",
+      "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true
     },
     "infra/terragrunt": {
-      "release-type": "terraform",
+      "release-type": "simple",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true
     }
