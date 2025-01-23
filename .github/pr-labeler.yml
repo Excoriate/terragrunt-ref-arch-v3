@@ -1,27 +1,50 @@
-feature: ['feature/*', 'enhancement/*']
-bug: ['fix/*', 'bugfix/*', 'bug/*']
-documentation: ['docs/*', 'readme/*']
-performance: ['perf/*', 'optimize/*']
-dependencies: ['deps/*', 'upgrade/*']
+feature:
+  - head-branch: ['feature/*', 'enhancement/*']
+
+bug:
+  - head-branch: ['fix/*', 'bugfix/*', 'bug/*']
+
+documentation:
+  - head-branch: ['docs/*', 'readme/*']
+
+performance:
+  - head-branch: ['perf/*', 'optimize/*']
+
+dependencies:
+  - head-branch: ['deps/*', 'upgrade/*']
 
 # Infrastructure-specific labels
-infra/terragrunt: ['infra/terragrunt/*']
-infra/terraform: ['infra/terraform/*']
+infra/terragrunt:
+  - head-branch: ['infra/terragrunt/*']
+
+infra/terraform:
+  - head-branch: ['infra/terraform/*']
 
 # Maintenance and configuration
-maintenance: ['chore/*', 'config/*']
-ci: ['ci/*', 'workflow/*']
+maintenance:
+  - head-branch: ['chore/*', 'config/*']
+
+ci:
+  - head-branch: ['ci/*', 'workflow/*']
 
 # Breaking changes
-breaking: ['breaking/*', 'major/*']
+breaking:
+  - head-branch: ['breaking/*', 'major/*']
 
 # Release preparation
-release: ['release/*', 'prep/*']
+release:
+  - head-branch: ['release/*', 'prep/*']
 
 # Test-related changes
-tests: ['test/*', 'testing/*']
+tests:
+  - head-branch: ['test/*', 'testing/*']
 
 # Configuration-specific labels
-config/root: ['config/root/*']
-config/shared: ['config/shared/*']
-config/environment: ['config/env/*']
+config/root:
+  - head-branch: ['config/root/*']
+
+config/shared:
+  - head-branch: ['config/shared/*']
+
+config/environment:
+  - head-branch: ['config/env/*']
