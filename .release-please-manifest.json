@@ -1,5 +1,6 @@
 {
   "tools/infractl": "0.1.0",
   "infra/terraform": "0.1.0",
-  "infra/terragrunt": "0.1.0"
+  "infra/terragrunt": "0.1.0",
+  ".": "1.0.0"
 }
