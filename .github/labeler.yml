@@ -63,21 +63,16 @@ maintenance:
 
 # Branch-based labels
 feature:
-  - head-branch: ['^feature/', 'feature']
+  - head-branch: ['^feature', 'feature']
 
 infrastructure:
   - head-branch: ['^infra/', 'infrastructure']
 
 bug:
-  - head-branch:
-      - '^fix/'
-      - '^bugfix/'
-      - '^bug/'
+  - head-branch: ['^fix', '^bugfix', '^bug']
 
 breaking:
-  - head-branch:
-      - '^breaking/'
-      - '^major/'
+  - head-branch: ['^breaking', '^major']
 
 release:
-  - base-branch: main
+  - base-branch: ['main']
