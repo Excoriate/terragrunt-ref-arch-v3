@@ -1,50 +1,86 @@
 feature:
-  - head-branch: ['feature/*', 'enhancement/*']
+  - any:
+      head-branch: ['feature/*', 'enhancement/*']
 
 bug:
-  - head-branch: ['fix/*', 'bugfix/*', 'bug/*']
+  - any:
+      head-branch: ['fix/*', 'bugfix/*', 'bug/*']
 
 documentation:
-  - head-branch: ['docs/*', 'readme/*']
+  - any:
+      head-branch: ['docs/*', 'readme/*']
+      changed-files:
+        any-glob-to-any-file: ['**/*.md', 'docs/**/*']
 
 performance:
-  - head-branch: ['perf/*', 'optimize/*']
+  - any:
+      head-branch: ['perf/*', 'optimize/*']
 
 dependencies:
-  - head-branch: ['deps/*', 'upgrade/*']
+  - any:
+      head-branch: ['deps/*', 'upgrade/*']
+      changed-files:
+        any-glob-to-any-file: ['**/go.mod', '**/go.sum', 'release-please-config.json']
 
 # Infrastructure-specific labels
 infra/terragrunt:
-  - head-branch: ['infra/terragrunt/*']
+  - any:
+      head-branch: ['infra/terragrunt/*']
+      changed-files:
+        any-glob-to-any-file: ['infra/terragrunt/**/*.hcl']
 
 infra/terraform:
-  - head-branch: ['infra/terraform/*']
+  - any:
+      head-branch: ['infra/terraform/*']
+      changed-files:
+        any-glob-to-any-file: ['infra/terraform/**/*.tf']
 
 # Maintenance and configuration
 maintenance:
-  - head-branch: ['chore/*', 'config/*']
+  - any:
+      head-branch: ['chore/*', 'config/*']
+      changed-files:
+        any-glob-to-any-file: ['.gitignore', '.editorconfig', 'justfile']
 
 ci:
-  - head-branch: ['ci/*', 'workflow/*']
+  - any:
+      head-branch: ['ci/*', 'workflow/*']
+      changed-files:
+        any-glob-to-any-file: ['.github/**/*']
 
 # Breaking changes
 breaking:
-  - head-branch: ['breaking/*', 'major/*']
+  - any:
+      head-branch: ['breaking/*', 'major/*']
 
 # Release preparation
 release:
-  - head-branch: ['release/*', 'prep/*']
+  - any:
+      head-branch: ['release/*', 'prep/*']
+      base-branch: ['main']
 
 # Test-related changes
 tests:
-  - head-branch: ['test/*', 'testing/*']
+  - any:
+      head-branch: ['test/*', 'testing/*']
+      changed-files:
+        any-glob-to-any-file: ['**/*_test.go']
 
 # Configuration-specific labels
 config/root:
-  - head-branch: ['config/root/*']
+  - any:
+      head-branch: ['config/root/*']
+      changed-files:
+        any-glob-to-any-file: ['config/root/*']
 
 config/shared:
-  - head-branch: ['config/shared/*']
+  - any:
+      head-branch: ['config/shared/*']
+      changed-files:
+        any-glob-to-any-file: ['config/shared/*']
 
 config/environment:
-  - head-branch: ['config/env/*']
+  - any:
+      head-branch: ['config/env/*']
+      changed-files:
+        any-glob-to-any-file: ['config/env/*']
