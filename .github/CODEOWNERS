@@ -1,0 +1,16 @@
+# CODEOWNERS file for Terragrunt Reference Architecture
+
+# Default owners for everything in the repo
+* @Excoriate
+
+# Terragrunt Infrastructure
+infra/terragrunt/ @Excoriate @terragrunt-maintainers
+
+# Terraform Modules
+infra/terraform/ @Excoriate @terraform-maintainers
+
+# Documentation
+*.md @Excoriate @docs-maintainers
+
+# CI/CD Configuration
+.github/ @Excoriate @ci-maintainers

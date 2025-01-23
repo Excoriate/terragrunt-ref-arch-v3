@@ -1,0 +1,42 @@
+---
+name: Issue Comment Management
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  comment-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Handle Comment Commands
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = context.payload.comment;
+            const issue = context.payload.issue;
+            const commentBody = comment.body.trim().toLowerCase();
+
+            // Reopen command
+            if (commentBody === '/reopen') {
+              if (issue.state === 'closed') {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'open'
+                });
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: 'Issue reopened by repository maintainer.'
+                });
+              }
+            }
+
+            // Additional commands can be added here

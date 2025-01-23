@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report an issue in the Terragrunt Reference Architecture
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the Terragrunt Reference Architecture.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Select the primary component experiencing the issue
+      options:
+        - Root Configuration
+        - Shared Configuration
+        - Environment Configuration
+        - Stack Configuration
+        - Unit Configuration
+        - CLI/Tooling
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: Provide a clear, concise explanation of the unexpected behavior
+      placeholder: What went wrong and under what circumstances?
+    validations:
+      required: true
+
+  - type: input
+    id: terragrunt-version
+    attributes:
+      label: Terragrunt Version
+      placeholder: e.g., 0.45.6
+    validations:
+      required: true
+
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform Version
+      placeholder: e.g., 1.5.3
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide minimal, precise steps to consistently reproduce the issue
+      placeholder: |
+        1. Run '...'
+        2. Configure '...'
+        3. Observe error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Paste any error logs or command output
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Issue Severity
+      description: How critical is this issue?
+      options:
+        - Critical (Workflow Blocking)
+        - High (Significant Impact)
+        - Medium (Partial Functionality)
+        - Low (Minor Issue)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: Configuration details, custom modifications, etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Contribution Guidelines
+      description: By submitting this issue, you agree to follow our project's guidelines
+      options:
+        - label: I have searched existing issues and verified this is not a duplicate
+          required: true

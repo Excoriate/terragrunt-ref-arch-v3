@@ -1,0 +1,56 @@
+---
+version: 2
+updates:
+  # Terraform and Terragrunt dependencies
+  - package-ecosystem: "terraform"
+    directory: "/infra/terragrunt"
+    schedule:
+      interval: "weekly"
+    groups:
+      terragrunt-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "infra/terragrunt"
+      - "terraform"
+
+  # Terraform module dependencies
+  - package-ecosystem: "terraform"
+    directory: "/infra/terraform"
+    schedule:
+      interval: "weekly"
+    groups:
+      terraform-module-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "infra/terraform"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "ci"
+
+  # Documentation dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      docs-dependencies:
+        patterns:
+          - "remark"
+          - "markdown"
+    labels:
+      - "dependencies"
+      - "docs"

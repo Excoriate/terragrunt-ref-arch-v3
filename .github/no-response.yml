@@ -1,0 +1,15 @@
+---
+# Configuration for probot-no-response - https://github.com/probot/no-response
+
+# Number of days of inactivity before an Issue is closed for lack of response
+daysUntilClose: 21
+# Label requiring a response
+responseRequiredLabel: needs-info
+# Comment to post when closing an Issue for lack of response. Set to `false` to disable
+closeComment: >-
+  This issue has been automatically closed due to lack of response.
+  For Terragrunt Reference Architecture issues, please provide:
+  - Specific configuration context
+  - Exact Terragrunt/Terraform version
+  - Detailed error logs or configuration snippets
+  Feel free to reopen with more details. 🏗️

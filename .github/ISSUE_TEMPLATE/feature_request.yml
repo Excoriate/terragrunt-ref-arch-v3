@@ -1,0 +1,100 @@
+name: Feature Request
+description: Propose improvements for the Terragrunt Reference Architecture
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to the Terragrunt Reference Architecture.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Select the primary component this feature impacts
+      options:
+        - Root Configuration
+        - Shared Configuration
+        - Environment Configuration
+        - Stack Configuration
+        - Unit Configuration
+        - CLI/Tooling
+        - Cross-cutting Concern
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Describe the specific limitation or challenge in the current architecture
+      placeholder: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Outline your proposed feature or improvement
+      placeholder: |
+        - Key functionality
+        - Implementation approach
+        - Configuration modifications
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Describe specific scenarios where this feature provides value
+      placeholder: |
+        1. Primary Use Case:
+        2. Secondary Use Case:
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Feature Priority
+      description: How critical is this feature?
+      options:
+        - High (Critical for workflow)
+        - Medium (Significant improvement)
+        - Low (Nice to have)
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-considerations
+    attributes:
+      label: Technical Considerations
+      description: Compatibility and configuration impact
+      placeholder: |
+        - Terragrunt version requirements
+        - Potential configuration changes
+        - Provider compatibility
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any supplementary information
+      placeholder: Links to documentation, references, or related discussions
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution Details
+      description: Are you willing to help implement this feature?
+      options:
+        - label: I'm interested in contributing to this feature
+        - label: I have searched existing issues and verified this is not a duplicate
+          required: true

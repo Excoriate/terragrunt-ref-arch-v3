@@ -1,0 +1,38 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Go files
+*.go text diff=golang
+go.mod text diff=golang
+go.sum text diff=golang
+
+# Binary files
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+
+# Documentation
+*.md text diff=markdown
+
+# Terraform and HCL files
+# Ensure consistent text handling and intelligent diff rendering for infrastructure-as-code files
+# - text: Treat as text files for proper line-ending and encoding management
+# - diff=terraform/hcl: Use specialized diff drivers to improve readability of infrastructure code changes
+# - Helps in code reviews by highlighting semantic changes in configuration files
+*.tf text diff=terraform
+*.hcl text diff=hcl
+*.tfvars text diff=terraform
+
+# Terragrunt files
+# Specific handling for Terragrunt configuration files to improve version control experience
+# - Enables more intelligent diff rendering for Terragrunt-specific HCL configurations
+# - Helps track changes in infrastructure orchestration and module composition
+*.terragrunt.hcl text diff=hcl
+
+# Ignore specific files in export
+# Prevents unnecessary files from being included in archive exports
+.github export-ignore
+.gitignore export-ignore
+.golangci.yml export-ignore
+.pre-commit-config.yaml export-ignore

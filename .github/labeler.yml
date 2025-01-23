@@ -1,0 +1,83 @@
+---
+# Root changes
+root:
+  - changed-files:
+      - any-glob-to-any-file: '*'
+
+# Documentation changes
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+          - '**/README.md'
+          - '.AI/**/*'
+          - '**/CONTRIBUTING.md'
+
+# Terragrunt Infrastructure changes
+infra/terragrunt:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'infra/terragrunt/**/*.hcl'
+          - 'infra/terragrunt/**/*.yaml'
+          - 'infra/terragrunt/_*/**/*'
+
+# Terraform Module changes
+infra/terraform:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'infra/terraform/**/*.tf'
+          - 'infra/terraform/**/*.tfvars'
+
+# CI/CD changes
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+          - 'justfile'
+          - 'Makefile'
+
+# Dependency changes
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/go.mod'
+          - '**/go.sum'
+          - 'release-please-config.json'
+          - 'dependabot.yml'
+
+# Test changes
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*_test.go'
+
+# Configuration and tooling changes
+maintenance:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.gitignore'
+          - '.editorconfig'
+          - '.golangci.yml'
+          - 'justfile'
+
+# Branch-based labels
+feature:
+  - head-branch: ['^feature/', 'feature']
+
+infrastructure:
+  - head-branch: ['^infra/', 'infrastructure']
+
+bug:
+  - head-branch:
+      - '^fix/'
+      - '^bugfix/'
+      - '^bug/'
+
+breaking:
+  - head-branch:
+      - '^breaking/'
+      - '^major/'
+
+release:
+  - base-branch: main

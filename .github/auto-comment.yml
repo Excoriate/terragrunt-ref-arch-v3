@@ -1,0 +1,20 @@
+---
+pullRequestOpened: |-
+  :wave: Thanks for contributing to the Terragrunt Reference Architecture!
+
+  Before we can merge this PR, please ensure:
+  - [ ] Added/updated tests for new functionality
+  - [ ] Followed Terragrunt and Terraform best practices
+  - [ ] Updated documentation for new features
+  - [ ] Verified configuration modularity
+  - [ ] Checked performance impact on infrastructure configurations
+  - [ ] Reviewed changes for security implications
+  - [ ] Linked to relevant issue (if applicable)
+
+  Terragrunt Specific Checklist:
+  - [ ] Validated HCL configuration syntax
+  - [ ] Tested with multiple environment configurations
+  - [ ] Considered multi-stack and cross-environment scenarios
+  - [ ] Ensured DRY (Don't Repeat Yourself) principles
+
+  Thank you for improving the Terragrunt Reference Architecture! 🚀
