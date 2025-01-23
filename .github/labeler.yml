@@ -18,23 +18,15 @@ ci:
   - changed-files:
       any-glob-to-any-file: ['.github/**/*']
 
-# Feature branch
-feature:
-  - head-branch: ['^feature', 'feature']
-
-# Bug fix branch
-bug:
-  - head-branch: ['^fix', '^bugfix', '^bug']
-
-# Breaking changes
-breaking:
-  - head-branch: ['^breaking', '^major']
-
-# Release preparation
-release:
-  - base-branch: ['main']
-
 # Test changes
 tests:
   - changed-files:
       any-glob-to-any-file: ['**/*_test.*']
+
+dx:
+  - changed-files:
+      any-glob-to-any-file: ['justfile']
+
+github:
+  - changed-files:
+      any-glob-to-any-file: ['.github/**/*']
