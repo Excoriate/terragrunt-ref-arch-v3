@@ -32,5 +32,4 @@ jobs:
             ci
             chore
             infra
-            tool
             breaking
