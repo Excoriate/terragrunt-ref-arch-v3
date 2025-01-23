@@ -30,3 +30,7 @@ dx:
 github:
   - changed-files:
       any-glob-to-any-file: ['.github/**/*']
+
+cd:
+  - changed-files:
+      any-glob-to-any-file: ['@release-please-config.json', '@.release-please-manifest.json']
