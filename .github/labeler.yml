@@ -1,78 +1,40 @@
----
-# Root changes
-root:
-  - changed-files:
-      - any-glob-to-any-file: '*'
-
 # Documentation changes
-documentation:
+docs:
   - changed-files:
-      - any-glob-to-any-file:
-          - '**/*.md'
-          - 'docs/**/*'
-          - '**/README.md'
-          - '.AI/**/*'
-          - '**/CONTRIBUTING.md'
+      any-glob-to-any-file: ['**/*.md', 'docs/**/*']
 
-# Terragrunt Infrastructure changes
-infra/terragrunt:
+# Terragrunt infrastructure changes
+terragrunt:
   - changed-files:
-      - any-glob-to-any-file:
-          - 'infra/terragrunt/**/*.hcl'
-          - 'infra/terragrunt/**/*.yaml'
-          - 'infra/terragrunt/_*/**/*'
+      any-glob-to-any-file: ['infra/terragrunt/**/*.hcl']
 
-# Terraform Module changes
-infra/terraform:
+# Terraform infrastructure changes
+terraform:
   - changed-files:
-      - any-glob-to-any-file:
-          - 'infra/terraform/**/*.tf'
-          - 'infra/terraform/**/*.tfvars'
+      any-glob-to-any-file: ['infra/terraform/**/*.tf']
 
-# CI/CD changes
+# CI/CD workflow changes
 ci:
   - changed-files:
-      - any-glob-to-any-file:
-          - '.github/**/*'
-          - 'justfile'
-          - 'Makefile'
+      any-glob-to-any-file: ['.github/**/*']
 
-# Dependency changes
-dependencies:
-  - changed-files:
-      - any-glob-to-any-file:
-          - '**/go.mod'
-          - '**/go.sum'
-          - 'release-please-config.json'
-          - 'dependabot.yml'
+# Feature branch
+feature:
+  - head-branch: ['^feature', 'feature']
+
+# Bug fix branch
+bug:
+  - head-branch: ['^fix', '^bugfix', '^bug']
+
+# Breaking changes
+breaking:
+  - head-branch: ['^breaking', '^major']
+
+# Release preparation
+release:
+  - base-branch: ['main']
 
 # Test changes
 tests:
   - changed-files:
-      - any-glob-to-any-file:
-          - '**/*_test.go'
-
-# Configuration and tooling changes
-maintenance:
-  - changed-files:
-      - any-glob-to-any-file:
-          - '.gitignore'
-          - '.editorconfig'
-          - '.golangci.yml'
-          - 'justfile'
-
-# Branch-based labels
-feature:
-  - head-branch: ['^feature', 'feature']
-
-infrastructure:
-  - head-branch: ['^infra/', 'infrastructure']
-
-bug:
-  - head-branch: ['^fix', '^bugfix', '^bug']
-
-breaking:
-  - head-branch: ['^breaking', '^major']
-
-release:
-  - base-branch: ['main']
+      any-glob-to-any-file: ['**/*_test.*']
