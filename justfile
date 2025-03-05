@@ -66,5 +66,32 @@ tg-run-all-apply env="global" stack="dni":
 tg-run-all-destroy env="global" stack="dni":
     @cd infra/terragrunt/{{env}}/{{stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
 
+# 🛠️ Allow direnv to run
+# Ensures that direnv is allowed to run in the current directory
+# Useful for managing environment variables and configurations
+allow-direnv:
+    @echo "🔒 Allow direnv to run..."
+    @direnv allow
+
+# 🛠️ Enter Nix development shell
+# Provides a consistent development environment with all required tools
+# Uses flake.nix to ensure reproducible tool versions across all developers
+dev: allow-direnv
+    @echo "🔍 Verifying Git and Nix configuration..."
+    @if [ ! -f "flake.nix" ]; then echo "❌ flake.nix not found!"; exit 1; fi
+    @if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then echo "❌ Not in a Git repository!"; exit 1; fi
+    @if [ -n "$(git status --porcelain)" ]; then \
+        echo "⚠️  Git repository has uncommitted changes. This may cause issues with Nix flakes."; \
+        echo "Consider committing or stashing changes first."; \
+        read -p "Continue anyway? [y/N] " -n 1 -r; \
+        echo; \
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
+            echo "Aborting."; \
+            exit 1; \
+        fi \
+    fi
+    @echo "🚀 Entering Nix development shell..."
+    @nix develop --extra-experimental-features "nix-command flakes"
+
 
 
