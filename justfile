@@ -91,7 +91,7 @@ dev: allow-direnv
         fi \
     fi
     @echo "🚀 Entering Nix development shell..."
-    @nix develop --extra-experimental-features "nix-command flakes"
+    @NIXPKGS_ALLOW_UNFREE=1 nix develop --impure --extra-experimental-features "nix-command flakes"
 
 
 
