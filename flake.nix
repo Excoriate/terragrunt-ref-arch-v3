@@ -2,7 +2,7 @@
   description = "Terragrunt Reference Architecture Development Shell";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11-small";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -17,13 +17,12 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          config = {
-            allowUnfree = true;
-          };
+          config.allowUnfree = true;
         };
       in
       {
         devShells.default = pkgs.mkShell {
+          nativeBuildInputs = [ pkgs.bashInteractive ];
           buildInputs = with pkgs; [
             terraform_1
             terragrunt
@@ -32,10 +31,7 @@
           ];
 
           shellHook = ''
-            echo "🚀 Welcome to Terragrunt Reference Architecture Development Shell"
-            echo "📦 Terraform and Terragrunt are available"
-            echo "🔧 Use 'just --list' to see available commands"
-            eval "$(direnv hook bash)"
+            echo "🚀 Terragrunt Dev Shell | Run 'just --list' for commands"
           '';
         };
       }

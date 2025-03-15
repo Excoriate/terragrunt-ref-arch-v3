@@ -29,7 +29,7 @@
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-23.11",
+        "ref": "nixos-23.11-small",
         "repo": "nixpkgs",
         "type": "github"
       }
