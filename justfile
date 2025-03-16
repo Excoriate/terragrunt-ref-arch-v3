@@ -72,7 +72,15 @@ allow-direnv:
 # Helps users set up their environment variables with direnv
 # Creates a basic .envrc file if it doesn't exist and allows direnv to use it
 setup-env:
-    @echo "🔧 Setting up environment variables with direnv..."
+    @echo "Setting up environment files..."
+    @mkdir -p scripts
+    @if [ ! -f "scripts/envrc-utils.sh" ]; then \
+        echo "Creating envrc-utils.sh with common functions..."; \
+        echo '#!/usr/bin/env bash' > scripts/envrc-utils.sh; \
+        echo '# Terragrunt Reference Architecture - Environment Utilities' >> scripts/envrc-utils.sh; \
+        echo '# Common shell functions for .envrc files across the project' >> scripts/envrc-utils.sh; \
+        chmod +x scripts/envrc-utils.sh; \
+    fi
     @if [ ! -f ".envrc" ]; then \
         echo "Creating .envrc file with default values..."; \
         echo '#!/usr/bin/env bash' > .envrc; \
@@ -81,37 +89,32 @@ setup-env:
         echo '# Enable Nix flake support for direnv' >> .envrc; \
         echo 'use flake' >> .envrc; \
         echo '' >> .envrc; \
+        echo '# Source the shared utility functions' >> .envrc; \
+        echo 'source "${PWD}/scripts/envrc-utils.sh"' >> .envrc; \
+        echo '' >> .envrc; \
         echo '# Global defaults and security settings' >> .envrc; \
-        echo 'export DEFAULT_REGION="us-east-1"' >> .envrc; \
-        echo 'export TF_INPUT="0"  # Disable interactive Terraform input' >> .envrc; \
-        echo 'export LANG="en_US.UTF-8"' >> .envrc; \
-        echo 'export LC_ALL="en_US.UTF-8"' >> .envrc; \
+        echo '_safe_export DEFAULT_REGION "us-east-1"' >> .envrc; \
+        echo '_safe_export TF_INPUT "0"  # Disable interactive Terraform input' >> .envrc; \
+        echo '_safe_export LANG "en_US.UTF-8"' >> .envrc; \
+        echo '_safe_export LC_ALL "en_US.UTF-8"' >> .envrc; \
         echo '' >> .envrc; \
         echo '# Terraform Remote State Management' >> .envrc; \
-        echo 'export TG_STACK_REMOTE_STATE_BUCKET_NAME="terraform-state-myproject"' >> .envrc; \
-        echo 'export TG_STACK_REMOTE_STATE_LOCK_TABLE="terraform-state-lock-myproject"' >> .envrc; \
-        echo 'export TG_STACK_REMOTE_STATE_REGION="us-east-1"' >> .envrc; \
-        echo 'export TG_STACK_REMOTE_STATE_OBJECT_BASENAME="terraform.tfstate.json"' >> .envrc; \
+        echo '_safe_export TG_STACK_REMOTE_STATE_BUCKET_NAME "terraform-state-myproject"' >> .envrc; \
+        echo '_safe_export TG_STACK_REMOTE_STATE_LOCK_TABLE "terraform-state-lock-myproject"' >> .envrc; \
+        echo '_safe_export TG_STACK_REMOTE_STATE_REGION "us-east-1"' >> .envrc; \
+        echo '_safe_export TG_STACK_REMOTE_STATE_OBJECT_BASENAME "terraform.tfstate.json"' >> .envrc; \
         echo '' >> .envrc; \
         echo '# Terragrunt Configuration Variables' >> .envrc; \
-        echo 'export TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE="true"' >> .envrc; \
-        echo 'export TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE="true"' >> .envrc; \
-        echo 'export TG_STACK_REGION="us-east-1"' >> .envrc; \
-        echo 'export TG_STACK_TF_VERSION="1.9.0"' >> .envrc; \
-        echo 'export TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE="false"' >> .envrc; \
-        echo '' >> .envrc; \
-        echo '# Application Metadata' >> .envrc; \
-        echo 'export TG_STACK_APP_AUTHOR="YourName"' >> .envrc; \
-        echo 'export TG_STACK_APP_PRODUCT_NAME="my-infrastructure"' >> .envrc; \
-        echo "✅ Created .envrc file with default values"; \
-        echo "📝 Please edit the file to customize your environment variables"; \
-    else \
-        echo "✅ .envrc file already exists"; \
+        echo '_safe_export TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE "true"' >> .envrc; \
+        echo '_safe_export TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE "true"' >> .envrc; \
+        echo '_safe_export TG_STACK_REGION "us-east-1"' >> .envrc; \
+        echo '_safe_export TG_STACK_TF_VERSION "1.9.0"' >> .envrc; \
+        echo '_safe_export TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE "false"' >> .envrc; \
+        chmod +x .envrc; \
     fi
-    @echo "🔒 Allowing direnv to use the .envrc file..."
+    @echo "Allowing direnv to use .envrc..."
     @direnv allow
-    @echo "✅ Environment setup complete!"
-    @echo "📝 For more information, see docs/environment-variables.md"
+    @echo "Environment setup complete!"
 
 # 🛠️ Enter Nix development shell
 # Provides a consistent development environment with all required tools

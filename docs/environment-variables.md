@@ -1,156 +1,180 @@
-# Environment Variables Guide
+# Environment Variables Management
 
 ## Overview
 
-This project uses [direnv](https://direnv.net/) with `.envrc` files to manage environment variables. This approach provides a secure, consistent way to handle configuration across different environments and developers.
+The Terragrunt Reference Architecture employs a sophisticated, hierarchical approach to environment variable management powered by [direnv](https://direnv.net/). This system provides:
 
-## Benefits of Using `.envrc` with direnv
+- **Hierarchical Inheritance**: Variables cascade from parent to child directories
+- **Layer-based Organization**: Variables are grouped by logical layers
+- **Secure Variable Handling**: Validation and export of environment variables
+- **Flexible Customization**: Easy-to-modify configuration points
+- **Comprehensive Utility Functions**: Shared shell functions for variable management
 
-1. **Automatic Loading**: Environment variables are loaded automatically when entering the project directory
-2. **Secure Management**: Variables are never committed to version control
-3. **Project-Specific Configuration**: Each project can have its own isolated environment
-4. **Shell Integration**: Works with bash, zsh, and other common shells
+## Core Principles
 
-## Setup Instructions
+### Inheritance Mechanism
 
-### Prerequisites
+The environment variable system is built on a cascading inheritance model:
 
-1. Install direnv:
-   ```bash
-   # macOS with Homebrew
-   brew install direnv
-   
-   # Linux
-   sudo apt install direnv  # Debian/Ubuntu
-   sudo yum install direnv  # CentOS/RHEL
-   ```
+1. **Root Level**: Global project-wide defaults
+2. **Terragrunt Layer**: Terragrunt-specific configurations
+3. **Environment Layers**: Environment-specific settings (dev, staging, prod)
+4. **Optional Stack Layers**: Granular, stack-specific configurations
 
-2. Add direnv hook to your shell:
-   ```bash
-   # For bash
-   echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
-   source ~/.bashrc
-   
-   # For zsh
-   echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
-   source ~/.zshrc
-   ```
+### Key Utility Functions
 
-### Project Configuration
+The system leverages several core utility functions in `scripts/envrc-utils.sh`:
 
-1. Create or edit the `.envrc` file in the project root:
-   ```bash
-   # Example: Setting up basic environment variables
-   export TG_STACK_REGION="us-east-1"
-   export TG_STACK_APP_PRODUCT_NAME="my-infrastructure"
-   ```
+- `_safe_export`: Securely export environment variables
+- `_display_exported_vars`: Show current environment variable configuration
+- `_detect_project_root`: Identify project root directory
+- `_log`: Standardized logging mechanism
 
-2. Allow direnv to load the environment:
-   ```bash
-   direnv allow
-   ```
+## Directory Structure
 
-3. Verify the environment is loaded:
-   ```bash
-   echo $TG_STACK_REGION  # Should output "us-east-1"
-   ```
+```
+/
+├── .envrc                      # Root-level global variables
+├── scripts/
+│   └── envrc-utils.sh          # Shared utility functions
+├── infra/
+│   └── terragrunt/
+│       ├── .envrc              # Terragrunt-specific variables
+│       ├── global/
+│       │   └── .envrc          # Global environment variables
+│       ├── dev/
+│       │   └── .envrc          # Development environment variables
+│       ├── staging/
+│       │   └── .envrc          # Staging environment variables
+│       └── prod/
+│           └── .envrc          # Production environment variables
+```
 
-## Required Environment Variables
+## `.envrc` File Template
 
-The following environment variables are used throughout the project:
-
-### Application Observability
-- `LOG_LEVEL`: Minimum log level for application logging
-- `LOG_DIR`: Directory where application logs will be stored
-
-### Terraform Remote State Management
-- `TG_STACK_REMOTE_STATE_BUCKET_NAME`: S3 bucket for storing Terraform state
-- `TG_STACK_REMOTE_STATE_LOCK_TABLE`: DynamoDB table for state locking
-- `TG_STACK_REMOTE_STATE_REGION`: AWS region for remote state storage
-- `TG_STACK_REMOTE_STATE_OBJECT_BASENAME`: Base filename for state objects
-
-### Terragrunt Configuration
-- `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE`: Enable provider configuration overrides
-- `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE`: Enable version configuration overrides
-- `TG_STACK_REGION`: Default AWS deployment region
-- `TG_STACK_TF_VERSION`: Enforced Terraform version
-- `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE`: Enable Terraform version file override
-
-### Application Metadata
-- `TG_STACK_APP_AUTHOR`: Author of the application
-- `TG_STACK_APP_PRODUCT_NAME`: Name of the application
-
-## Example `.envrc` Configuration
-
-Here's a complete example of an `.envrc` file with all required variables:
+Each environment's `.envrc` follows a consistent structure:
 
 ```bash
 #!/usr/bin/env bash
-# Project environment configuration
+# Environment-Specific Configuration
 
-# Enable Nix flake support for direnv (if using Nix)
-use flake
+# Inherit from parent configuration
+source_up || true
 
-# Global defaults and security settings
-export DEFAULT_REGION="us-east-1"
-export TF_INPUT="0"  # Disable interactive Terraform input
-export LANG="en_US.UTF-8"
-export LC_ALL="en_US.UTF-8"
+# Source utility functions
+source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
 
-# Application Observability Configuration
-export LOG_LEVEL="info"
-export LOG_DIR="/var/log/myapp"
+# Environment Variables
+# Uncomment and modify as needed:
+# _safe_export ENVIRONMENT_TYPE "specific-type"
+# _safe_export RESOURCE_LIMITS "configuration"
 
-# Terraform Remote State Management
-export TG_STACK_REMOTE_STATE_BUCKET_NAME="terraform-state-myproject"
-export TG_STACK_REMOTE_STATE_LOCK_TABLE="terraform-state-lock-myproject"
-export TG_STACK_REMOTE_STATE_REGION="us-east-1"
-export TG_STACK_REMOTE_STATE_OBJECT_BASENAME="terraform.tfstate.json"
-
-# Terragrunt Configuration Variables
-export TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE="true"
-export TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE="true"
-export TG_STACK_REGION="us-east-1"
-export TG_STACK_TF_VERSION="1.9.0"
-export TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE="false"
-
-# Application Metadata
-export TG_STACK_APP_AUTHOR="YourName"
-export TG_STACK_APP_PRODUCT_NAME="my-infrastructure"
+# Optional: Display exported variables
+_display_exported_vars "ENV_PREFIX_"
 ```
 
-## Customizing Environment Variables
+## Customization Strategies
 
-To customize environment variables for your local setup:
+### Adding New Variables
 
-1. Copy the example above to your project's `.envrc` file
-2. Modify the values to match your environment
-3. Run `direnv allow` to apply the changes
+1. **Global Variables** (root `.envrc`):
+   ```bash
+   _safe_export GLOBAL_SETTING "value"
+   ```
 
-## Environment-Specific Configurations
+2. **Environment-Specific Variables**:
+   ```bash
+   # In dev/.envrc
+   _safe_export DEV_DEBUG_MODE "true"
+   
+   # In prod/.envrc
+   _safe_export PROD_RESOURCE_SCALING "high"
+   ```
 
-For different environments (development, staging, production):
+### Variable Inheritance and Overriding
 
-1. Create environment-specific `.envrc` files in subdirectories
-2. Use `source_up` in subdirectory `.envrc` files to inherit parent variables
-3. Override specific variables as needed
+- Variables defined in child directories override parent configurations
+- Use `source_up` to inherit parent variables
+- Customize by uncommenting and modifying variables
 
-Example for a staging environment:
+## Utility Functions Reference
 
+### `_safe_export`
+Securely export environment variables with validation:
 ```bash
-# staging/.envrc
-source_up
-export TG_STACK_REGION="us-west-2"
-export TG_STACK_APP_PRODUCT_NAME="my-infrastructure-staging"
+_safe_export VARIABLE_NAME "value"
 ```
 
+### `_display_exported_vars`
+Show exported variables with optional prefix filtering:
+```bash
+_display_exported_vars           # Show all variables
+_display_exported_vars "TG_"     # Show variables starting with TG_
+```
 ## Troubleshooting
 
-If you encounter issues with environment variables not being loaded:
+### Common Issues
 
-1. Ensure direnv is properly installed and hooked into your shell
-2. Run `direnv allow` in the project directory
-3. Check for any errors in the `.envrc` file
-4. Verify that your shell is properly configured to use direnv
+1. **Variables Not Loading**
+   - Ensure `direnv` is installed
+   - Run `direnv allow` in the directory
+   - Check for syntax errors in `.envrc` files
 
-For more detailed information about direnv, visit [direnv.net](https://direnv.net/) 
+2. **Inheritance Problems**
+   - Verify `source_up` is present
+   - Check for syntax errors preventing sourcing
+
+### Debugging Commands
+
+```bash
+# Show all environment variables
+env
+
+# Show variables with specific prefix
+env | grep TG_
+
+# Direnv debug mode
+DIRENV_LOG_FORMAT="" direnv allow
+```
+
+## Advanced Configuration
+
+### Conditional Configurations
+
+```bash
+# Example of environment-specific configuration
+if [[ "$TG_ENV" == "dev" ]]; then
+  _safe_export DEV_SPECIFIC_SETTING "value"
+fi
+```
+
+### Custom Validation
+
+```bash
+# Custom validation function
+_validate_environment() {
+  local env_type="$1"
+  if [[ ! "$env_type" =~ ^(dev|staging|prod)$ ]]; then
+    _log "ERROR" "Invalid environment type: $env_type"
+    return 1
+  fi
+}
+```
+
+## Security Considerations
+
+- Variables containing "SECRET", "PASSWORD", or "KEY" are automatically masked
+- All variables are validated before export
+- Caller information is tracked for each variable set
+
+## Integration with Other Tools
+
+- Compatible with Terraform
+- Works seamlessly with Terragrunt
+- Supports Nix flake configurations
+
+## Recommended Tools
+
+- [direnv](https://direnv.net/): Environment variable management
+- [sops](https://github.com/mozilla/sops): Secrets management
+- [pre-commit](https://pre-commit.com/): Git hooks for validation

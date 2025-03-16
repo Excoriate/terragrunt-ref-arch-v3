@@ -11,7 +11,7 @@ A cutting-edge, production-grade infrastructure management framework (or, just a
 | 🧩 Modular Architecture                   | Discrete, composable infrastructure units, that can inherit from shared unit's configurations, and from their parents in the hierarchy (stacks, or environments)                                                                                                                                                   |
 | 🌈 Highly Hierarchical Flexible Overrides | Designed to support multiple environments (the most common abstraction), where each environment can hold many stacks, and each stack can hold many units                                                                                                                                                           |
 | 🚀 Multi-Provider Compatibility           | Support for diverse cloud and infrastructure providers. Dynamically set providers, versions and overrides. It passes the control of the providers, and versions (if applicable) to the units, which are the smallest components of the architecture that deals directly with the terraform abstractions (modules). |
-| 🔧 Dynamic Environment Configuration      | Hierarchical, secure, and extensible environment variable management with a recursive .env file discovery, secure variable export with validation, automatic inheritance and override mechanisms, and comprehensive logging and tracing of environment setup                                                       |
+| 🔧 Dynamic Environment Configuration      | Hierarchical, secure, and extensible environment variable management with recursive `.envrc` file inheritance, secure variable export with validation, automatic inheritance and override mechanisms, and comprehensive logging and tracing of environment setup                                                  |
 | 🧼 Clean Code Configuration               | Strict separation of configuration logic, with clear distinctions between global settings, provider management, and Terragrunt generation rules in `config.hcl` and `root.hcl`. Implements comprehensive commenting and modular configuration design.                                                              |
 
 ## 📐 Architecture Overview
@@ -74,33 +74,33 @@ The project structure is as follows:
 infra/terragrunt
 ├── README.md
 ├── _shared
-│   ├── _config
-│   │   ├── README.md
-│   │   ├── app.hcl
-│   │   ├── remote_state.hcl
-│   │   └── tags.hcl
-│   └── _units
-│       ├── README.md
-│       ├── <unit>.hcl
-│       ├── <unit-2>.hcl
+│   ├── _config
+│   │   ├── README.md
+│   │   ├── app.hcl
+│   │   ├── remote_state.hcl
+│   │   └── tags.hcl
+│   └── _units
+│       ├── README.md
+│       ├── <unit>.hcl
+│       ├── <unit-2>.hcl
 ├── _templates
 ├── config.hcl
 ├── default.tfvars
 ├── <environment>
-│   ├── default.tfvars
-│   ├── <stack>
-│   │   ├── <unit>
-│   │   │   ├── README.md
-│   │   │   ├── terragrunt.hcl
-│   │   │   ├── unit_cfg_providers.hcl
-│   │   │   └── unit_cfg_versions.hcl
-│   │   ├── <unit-2>
-│   │   │   ├── README.md
-│   │   │   ├── terragrunt.hcl
-│   │   │   ├── unit_cfg_providers.hcl
-│   │   │   └── unit_cfg_versions.hcl
-│   │   └── stack.hcl
-│   └── env.hcl
+│   ├── default.tfvars
+│   ├── <stack>
+│   │   ├── <unit>
+│   │   │   ├── README.md
+│   │   │   ├── terragrunt.hcl
+│   │   │   ├── unit_cfg_providers.hcl
+│   │   │   └── unit_cfg_versions.hcl
+│   │   ├── <unit-2>
+│   │   │   ├── README.md
+│   │   │   ├── terragrunt.hcl
+│   │   │   ├── unit_cfg_providers.hcl
+│   │   │   └── unit_cfg_versions.hcl
+│   │   └── stack.hcl
+│   └── env.hcl
 └── root.hcl
 ```
 
@@ -108,13 +108,31 @@ infra/terragrunt
 
 ### 🔐 Environment Variable Management with `.envrc`
 
-A sophisticated, secure environment variable management system powered by [direnv](https://direnv.net/). It works by recursively loading `.env` files from parent directories, and then it will inherit the variables from the parent directories. There's a `.envrc` in each of these directories, or levels:
+A sophisticated, secure environment variable management system powered by [direnv](https://direnv.net/). It works by recursively loading environment variables through a hierarchical structure of `.envrc` files:
 
-- `.envrc` in the root directory. Loads what's in the `.env` file in the root directory, if present.
-- `infra/terragrunt/.envrc` in the environment directory. If there's a `.env` file in the environment directory, it will load it.
-- `infra/terragrunt/<environment>/<stack>/.envrc` in the stack directory. If there's a `.env` file in the stack directory, it will load it.
+- `.envrc` in the root directory: Sets global defaults and core environment variables
+- `infra/terragrunt/.envrc`: Terragrunt-specific configuration that inherits from the root
+- `infra/terragrunt/<environment>/.envrc`: Environment-specific variables (dev, staging, prod)
+- `infra/terragrunt/<environment>/<stack>/.envrc`: Stack-specific variables (optional)
 
-> **NOTE**: If a given environment variable is set in any of the leaf directories, it will override the variable in the parent directories.
+Each `.envrc` file inherits from its parent using `source_up` and can override or extend variables as needed. This creates a clean, hierarchical configuration that's easy to manage and customize.
+
+> **NOTE**: Environment variables defined in child directories will override those from parent directories, allowing for precise customization at each level.
+
+### 🔧 Environment Setup
+
+To set up your environment:
+
+1. Install [direnv](https://direnv.net/) if you haven't already
+2. Run `just setup-env` to create a basic `.envrc` file if needed
+3. Edit the `.envrc` files at different levels to customize your environment
+4. Run `direnv allow` in each directory to apply changes
+
+Each `.envrc` file is organized into clear sections:
+
+- **HELPER FUNCTIONS**: Utility functions for logging, validation, and secure variable export
+- **ENVIRONMENT VARIABLES**: Customizable variables organized by category
+- **CUSTOM ENVIRONMENT VARIABLES**: Section for adding your own project-specific variables
 
 ### 🔧 Supported Environment Variables
 
@@ -152,12 +170,12 @@ The reference architecture supports a comprehensive set of environment variables
 
 Currently, there are 4 levels of environment variables:
 
-- **Global**: Set in root `.envrc` or root-level configuration
+- **Global**: Set in root `.envrc`
 - **Infra/Terragrunt**: Set in `infra/terragrunt/.envrc`
-- **Environment**: Set in specific environment's `.envrc` E.g.: `infra/terragrunt/<environment>/.envrc`
-- **Stack**: Set in individual stack's configuration E.g.: `infra/terragrunt/<environment>/<stack>/.envrc`
+- **Environment**: Set in specific environment's `.envrc` (e.g., `infra/terragrunt/dev/.envrc`, `infra/terragrunt/prod/.envrc`)
+- **Stack**: Set in individual stack's `.envrc` (optional)
 
-> **Pro Tip**: Use environment-specific `.env` files to override variables at different levels of the infrastructure hierarchy. This repository includes a `.env.example` file to get you started. Just edit it, change its name to `.env`, and start setting the variables you need.
+> **Pro Tip**: Each `.envrc` file includes a dedicated section for custom environment variables where you can add your own project-specific settings. Look for the "CUSTOM ENVIRONMENT VARIABLES" section in each file.
 
 ### 🔧 Dynamic Provider and Version Management
 
@@ -225,8 +243,15 @@ Dive deep into our architecture with our detailed documentation:
 
 - [Terragrunt](https://terragrunt.gruntwork.io/)
 - [Terraform](https://www.terraform.io/)
+- [direnv](https://direnv.net/) (required for environment management)
 - (Optional) [JustFile](https://github.com/casey/just)
-- (Optional) [direnv](https://direnv.net/)
+
+### Environment Setup
+
+1. Install direnv: Follow the [installation instructions](https://direnv.net/docs/installation.html) for your platform
+2. Run `just setup-env` to create a basic `.envrc` file if needed
+3. Edit the `.envrc` files at different levels to customize your environment
+4. Run `direnv allow` in each directory to apply changes
 
 ### Running Terragrunt commands
 
@@ -255,9 +280,10 @@ More recipes are available in the [justfile](justfile) file.
 ### Quick Setup
 
 1. Clone the repository
-2. Install prerequisites
-3. Review documentation
-4. Customize configurations
+2. Install prerequisites (Terraform, Terragrunt, direnv)
+3. Run `just setup-env` to create your environment configuration
+4. Run `direnv allow` to load environment variables
+5. Review documentation and customize configurations
 
 ## 🤝 Contributing
 
@@ -273,3 +299,47 @@ For questions, support, or collaboration:
 
 - Open an [Issue](https://github.com/your-org/terragrunt-ref-arch-v3/issues)
 - Just reach out to me on [Linkedin](https://www.linkedin.com/in/alextorresruiz/)
+
+## ShellCheck Configuration
+
+This repository includes a `.shellcheckrc` configuration file to ensure consistent shell script quality. The configuration:
+
+- Specifies Bash as the shell dialect
+- Disables specific warnings that don't apply to our coding style
+- Enables optional checks for better code quality
+- Sets the severity level to warning
+- Allows sourcing of external files
+
+To run ShellCheck on shell scripts in this repository:
+
+```bash
+# Check a specific file
+shellcheck scripts/envrc-utils.sh
+
+# Check all shell scripts
+find . -name "*.sh" -exec shellcheck {} \;
+```
+
+For more information about ShellCheck, visit [shellcheck.net](https://www.shellcheck.net/).
+
+## Directory Structure
+
+```
+infra/terragrunt
+├── _shared
+│   ├── _config
+│   └── _units
+├── _templates
+├── config.hcl
+├── default.tfvars
+├── global
+│   ├── default.tfvars
+│   ├── dni
+│   │   ├── age_generator
+│   │   ├── dni_generator
+│   │   ├── lastname_generator
+│   │   ├── name_generator
+│   │   └── stack.hcl
+│   └── env.hcl
+└── root.hcl
+```
