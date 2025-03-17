@@ -134,48 +134,59 @@ Each `.envrc` file is organized into clear sections:
 - **ENVIRONMENT VARIABLES**: Customizable variables organized by category
 - **CUSTOM ENVIRONMENT VARIABLES**: Section for adding your own project-specific variables
 
-### 🔧 Supported Environment Variables
+### 🔧 Dynamic Environment Variable Management
 
-The reference architecture supports a comprehensive set of environment variables to configure and customize infrastructure deployment:
+A sophisticated environment variable management system powered by [direnv](https://direnv.net/). 
 
-| Category                     | Variable Name                                          | Description                                 | Default Value                                             | Customization Level  |
-| ---------------------------- | ------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------- | -------------------- |
-| **Terragrunt Flags**         | `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE`              | Controls provider file generation           | `"true"`                                                  | Global/Unit          |
-|                              | `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE`               | Controls version file generation            | `"true"`                                                  | Global/Unit          |
-|                              | `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE` | Controls .terraform-version file generation | `"false"`                                                 | Global               |
-| **Deployment Configuration** | `TG_STACK_REGION`                                      | Deployment AWS region                       | `"us-east-1"`                                             | Global/Environment   |
-| **Terraform Version**        | `TG_STACK_TF_VERSION`                                  | Enforced Terraform version                  | `"1.9.0"`                                                 | Global               |
-| **Provider Credentials**     | `TG_STACK_PROVIDER_CREDENTIAL`                         | Provider authentication credentials         | `""` (empty)                                              | Unit-specific        |
-| **Application Metadata**     | `TG_STACK_APP_PRODUCT_NAME`                            | Project/application name                    | `"my-app"`                                                | Global               |
-|                              | `TG_STACK_APP_PRODUCT_VERSION`                         | Project/application version                 | `"0.0.0"`                                                 | Global               |
-|                              | `TG_STACK_APP_AUTHOR`                                  | Configuration author                        | `""` (empty)                                              | Global               |
-| **Environment**              | `TG_ENVIRONMENT`                                       | Current environment                         | `"development"`                                           | Environment-specific |
-| **Remote State**             | `TG_STACK_REMOTE_STATE_BUCKET_NAME`                    | S3 bucket for remote state                  | `""` (empty)                                              | Global               |
-|                              | `TG_STACK_REMOTE_STATE_LOCK_TABLE`                     | DynamoDB lock table                         | `""` (empty)                                              | Global               |
-|                              | `TG_STACK_REMOTE_STATE_REGION`                         | Remote state storage region                 | `"us-east-1"`                                             | Global               |
-|                              | `TG_STACK_REMOTE_STATE_OBJECT_BASENAME`                | Remote state file basename                  | `"terraform.tfstate.json"`                                | Global               |
-|                              | `TG_STACK_REMOTE_STATE_BACKEND_TF_FILENAME`            | Backend configuration filename              | `"backend.tf"`                                            | Global               |
-| **Terragrunt Configuration** | `TERRAGRUNT_DOWNLOAD_DIR`                              | Terragrunt cache directory                  | `"${HOME}/.terragrunt-cache/$(basename "$PROJECT_ROOT")"` | Global               |
-|                              | `TERRAGRUNT_CACHE_MAX_AGE`                             | Terragrunt cache expiration                 | `"168h"` (7 days)                                         | Global               |
-|                              | `TERRAGRUNT_LOG_LEVEL`                                 | Terragrunt logging verbosity                | `"info"`                                                  | Global               |
-|                              | `TERRAGRUNT_DISABLE_CONSOLE_OUTPUT`                    | Console output control                      | `"false"`                                                 | Global               |
-|                              | `TERRAGRUNT_AUTO_INIT`                                 | Automatic Terragrunt initialization         | `"true"`                                                  | Global               |
-|                              | `TERRAGRUNT_AUTO_RETRY`                                | Automatic retry on failure                  | `"true"`                                                  | Global               |
-| **Terraform Configuration**  | `TF_INPUT`                                             | Disable interactive Terraform input         | `"0"`                                                     | Global               |
-| **Project-wide Variables**   | `PROJECT_ROOT`                                         | Project root directory                      | Current directory                                         | Global               |
-|                              | `DEFAULT_REGION`                                       | Default AWS region                          | `"us-east-1"`                                             | Global               |
-| **Locale Settings**          | `LANG`                                                 | Language setting                            | `"en_US.UTF-8"`                                           | Global               |
-|                              | `LC_ALL`                                               | Locale setting                              | `"en_US.UTF-8"`                                           | Global               |
-| **Debugging & Logging**      | `DIRENV_LOG_FORMAT`                                    | Direnv log format                           | `"[direnv] %s"`                                           | Global               |
+#### Key Features
+- Hierarchical inheritance of variables across project layers
+- Secure validation and export of environment variables
+- Flexible configuration across different environments
 
-Currently, there are 4 levels of environment variables:
+#### Supported Environment Variables
 
-- **Global**: Set in root `.envrc`
-- **Infra/Terragrunt**: Set in `infra/terragrunt/.envrc`
-- **Environment**: Set in specific environment's `.envrc` (e.g., `infra/terragrunt/dev/.envrc`, `infra/terragrunt/prod/.envrc`)
-- **Stack**: Set in individual stack's `.envrc` (optional)
+For a comprehensive list of supported environment variables, their descriptions, and customization levels, please refer to the [Environment Variables Documentation](docs/environment-variables.md).
 
-> **Pro Tip**: Each `.envrc` file includes a dedicated section for custom environment variables where you can add your own project-specific settings. Look for the "CUSTOM ENVIRONMENT VARIABLES" section in each file.
+| Category | Variable Name | Description | Default Value | Customization Level |
+| -------- | ------------- | ----------- | ------------- | ------------------- |
+| **Terragrunt Flags** | `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE` | Controls provider file generation | `"true"` | Global/Unit |
+| | `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` | Controls version file generation | `"true"` | Global/Unit |
+| | `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE` | Controls .terraform-version file generation | `"false"` | Global |
+| **Deployment Configuration** | `TG_STACK_REGION` | Deployment AWS region | `"us-east-1"` | Global/Environment |
+| **Terraform Version** | `TG_STACK_TF_VERSION` | Enforced Terraform version | `"1.9.0"` | Global |
+| **Provider Credentials** | `TG_STACK_PROVIDER_CREDENTIAL` | Provider authentication credentials | `""` (empty) | Unit-specific |
+| **Application Metadata** | `TG_STACK_APP_PRODUCT_NAME` | Project/application name | `"my-app"` | Global |
+| | `TG_STACK_APP_PRODUCT_VERSION` | Project/application version | `"0.0.0"` | Global |
+| | `TG_STACK_APP_AUTHOR` | Configuration author | `""` (empty) | Global |
+| **Environment** | `TG_ENVIRONMENT` | Current environment | `"development"` | Environment-specific |
+| **Remote State** | `TG_STACK_REMOTE_STATE_BUCKET_NAME` | S3 bucket for remote state | `""` (empty) | Global |
+| | `TG_STACK_REMOTE_STATE_LOCK_TABLE` | DynamoDB lock table | `""` (empty) | Global |
+| | `TG_STACK_REMOTE_STATE_REGION` | Remote state storage region | `"us-east-1"` | Global |
+| | `TG_STACK_REMOTE_STATE_OBJECT_BASENAME` | Remote state file basename | `"terraform.tfstate.json"` | Global |
+| | `TG_STACK_REMOTE_STATE_BACKEND_TF_FILENAME` | Backend configuration filename | `"backend.tf"` | Global |
+| **Terragrunt Configuration** | `TERRAGRUNT_DOWNLOAD_DIR` | Terragrunt cache directory | `"${HOME}/.terragrunt-cache/$(basename "$PROJECT_ROOT")"` | Global |
+| | `TERRAGRUNT_CACHE_MAX_AGE` | Terragrunt cache expiration | `"168h"` (7 days) | Global |
+| | `TERRAGRUNT_LOG_LEVEL` | Terragrunt logging verbosity | `"info"` | Global |
+| | `TERRAGRUNT_DISABLE_CONSOLE_OUTPUT` | Console output control | `"false"` | Global |
+| | `TERRAGRUNT_AUTO_INIT` | Automatic Terragrunt initialization | `"true"` | Global |
+| | `TERRAGRUNT_AUTO_RETRY` | Automatic retry on failure | `"true"` | Global |
+| **Terraform Configuration** | `TF_INPUT` | Disable interactive Terraform input | `"0"` | Global |
+| **Project-wide Variables** | `PROJECT_ROOT` | Project root directory | Current directory | Global |
+| | `DEFAULT_REGION` | Default AWS region | `"us-east-1"` | Global |
+| **Locale Settings** | `LANG` | Language setting | `"en_US.UTF-8"` | Global |
+| | `LC_ALL` | Locale setting | `"en_US.UTF-8"` | Global |
+| **Debugging & Logging** | `DIRENV_LOG_FORMAT` | Direnv log format | `"[direnv] %s"` | Global |
+
+#### Quick Environment Setup
+
+1. Install [direnv](https://direnv.net/)
+2. Run `just setup-env` to create initial configuration
+3. Edit `.envrc` files to customize your environment
+4. Run `direnv allow` to load variables
+
+> **Pro Tip**: Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.
+
+For more detailed information, consult the [Environment Variables Documentation](docs/environment-variables.md).
 
 ### 🔧 Dynamic Provider and Version Management
 
@@ -343,3 +354,32 @@ infra/terragrunt
 │   └── env.hcl
 └── root.hcl
 ```
+
+## 🔧 Dynamic Environment Variable Management
+
+The reference architecture implements a sophisticated environment variable management system powered by [direnv](https://direnv.net/). 
+
+### Key Features
+- **Hierarchical Inheritance**: Variables cascade through project layers
+- **Secure Variable Handling**: Validated and securely exported environment variables
+- **Flexible Configuration**: Easy customization across different environments
+
+### Detailed Documentation
+
+For a comprehensive guide to environment variable management, including:
+- Configuration hierarchy
+- Utility functions
+- Variable customization
+- Best practices
+- Troubleshooting
+
+Please refer to our [Environment Variables Documentation](docs/environment-variables.md).
+
+### Quick Environment Setup
+
+1. Install [direnv](https://direnv.net/)
+2. Run `just setup-env` to create initial configuration
+3. Edit `.envrc` files to customize your environment
+4. Run `direnv allow` to load variables
+
+> **Pro Tip**: Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.

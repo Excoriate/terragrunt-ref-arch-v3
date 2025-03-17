@@ -60,6 +60,7 @@ storybook-static
 tailwind.css
 .aider*
 .AI*
+.cursor*
 .DS_Store
 
 # Go

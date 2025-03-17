@@ -7,36 +7,53 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 120
 
-# Go files
+# Documentation
+[*.{md,txt,xml}]
+trim_trailing_whitespace = false
+max_line_length = 100
+
+# Infrastructure as Code
+[*.{tf,hcl,tfvars,terragrunt.hcl}]
+indent_style = space
+indent_size = 2
+
+# Shell and Script Files
+[*.{sh,bash,zsh,shellcheckrc}]
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+# Configuration Files
+[{.envrc,config/direnv/direnvrc,justfile,*.config}]
+indent_style = space
+indent_size = 2
+
+# Go Files
 [*.go]
 indent_style = tab
 indent_size = 4
 
-# YAML files
+# JSON and Data Files
+[*.{json,template,tpl}]
+indent_style = space
+indent_size = 2
+
+# YAML Files
 [*.{yml,yaml}]
 indent_style = space
 indent_size = 2
 
-# Markdown files
-[*.md]
-trim_trailing_whitespace = false
-
-# Shell scripts
-[*.sh]
+# Version and Metadata Files
+[*.{version,.terraform-version}]
 indent_style = space
 indent_size = 2
 
-# Makefiles and Justfiles
-[{Makefile,Justfile}]
+# Makefiles (use tabs)
+[{Makefile,*.mk}]
 indent_style = tab
 indent_size = 4
 
-# Terraform and HCL files
-[*.{tf,hcl,tfvars}]
-indent_style = space
-indent_size = 2
-
-# Terragrunt files
-[*.{hcl,terragrunt.hcl}]
-indent_style = space
-indent_size = 2
+# Markdown (special handling)
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = 100

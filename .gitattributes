@@ -1,37 +1,55 @@
 # Auto detect text files and perform LF normalization
 * text=auto eol=lf
 
-# Go files
+# Documentation
+*.md text diff=markdown
+*.txt text
+*.xml text
+
+# Infrastructure as Code
+*.tf text diff=terraform
+*.tfvars text diff=terraform
+*.hcl text diff=hcl
+*.terragrunt.hcl text diff=hcl
+*.terragrunt-module-manifest text
+*.terragrunt-source-manifest text
+*.terragrunt-source-version text
+
+# Shell and Script Files
+*.sh text diff=bash
+*.bash text diff=bash
+*.zsh text diff=bash
+.shellcheckrc text
+justfile text
+
+# Configuration Files
+*.config text
+.editorconfig text
+.envrc text
+config/direnv/direnvrc text
+
+# Go Files
 *.go text diff=golang
 go.mod text diff=golang
 go.sum text diff=golang
 
-# Binary files
+# JSON and Data Files
+*.json text
+*.template text
+*.tpl text
+
+# Version and Metadata Files
+*.version text
+.terraform-version text
+
+# Binary and Compiled Files
 *.exe binary
 *.dll binary
 *.so binary
 *.dylib binary
-
-# Documentation
-*.md text diff=markdown
-
-# Terraform and HCL files
-# Ensure consistent text handling and intelligent diff rendering for infrastructure-as-code files
-# - text: Treat as text files for proper line-ending and encoding management
-# - diff=terraform/hcl: Use specialized diff drivers to improve readability of infrastructure code changes
-# - Helps in code reviews by highlighting semantic changes in configuration files
-*.tf text diff=terraform
-*.hcl text diff=hcl
-*.tfvars text diff=terraform
-
-# Terragrunt files
-# Specific handling for Terragrunt configuration files to improve version control experience
-# - Enables more intelligent diff rendering for Terragrunt-specific HCL configurations
-# - Helps track changes in infrastructure orchestration and module composition
-*.terragrunt.hcl text diff=hcl
+*.tfstate binary
 
 # Ignore specific files in export
-# Prevents unnecessary files from being included in archive exports
 .github export-ignore
 .gitignore export-ignore
 .golangci.yml export-ignore
