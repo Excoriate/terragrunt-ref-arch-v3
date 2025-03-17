@@ -2,82 +2,98 @@
 
 ## Overview
 
-The Terragrunt Reference Architecture employs a sophisticated, hierarchical approach to environment variable management powered by [direnv](https://direnv.net/). This system provides:
+The Terragrunt Reference Architecture implements a sophisticated, hierarchical environment variable management system powered by [direnv](https://direnv.net/).
+
+## Key Features
 
 - **Hierarchical Inheritance**: Variables cascade from parent to child directories
-- **Layer-based Organization**: Variables are grouped by logical layers
+- **Layer-based Organization**: Variables grouped by logical layers
 - **Secure Variable Handling**: Validation and export of environment variables
 - **Flexible Customization**: Easy-to-modify configuration points
-- **Comprehensive Utility Functions**: Shared shell functions for variable management
 
-## Core Principles
-
-### Inheritance Mechanism
-
-The environment variable system is built on a cascading inheritance model:
-
-1. **Root Level**: Global project-wide defaults
-2. **Terragrunt Layer**: Terragrunt-specific configurations
-3. **Environment Layers**: Environment-specific settings (dev, staging, prod)
-4. **Optional Stack Layers**: Granular, stack-specific configurations
-
-### Key Utility Functions
-
-The system leverages several core utility functions in `scripts/envrc-utils.sh`:
-
-- `_safe_export`: Securely export environment variables
-- `_display_exported_vars`: Show current environment variable configuration
-- `_detect_project_root`: Identify project root directory
-- `_log`: Standardized logging mechanism
-
-## Directory Structure
+## Configuration Hierarchy
 
 ```
 /
-├── .envrc                      # Root-level global variables
-├── scripts/
-│   └── envrc-utils.sh          # Shared utility functions
-├── infra/
-│   └── terragrunt/
-│       ├── .envrc              # Terragrunt-specific variables
-│       ├── global/
-│       │   └── .envrc          # Global environment variables
-│       ├── dev/
-│       │   └── .envrc          # Development environment variables
-│       ├── staging/
-│       │   └── .envrc          # Staging environment variables
-│       └── prod/
-│           └── .envrc          # Production environment variables
+├── .envrc                      # Root-level global configuration
+└── infra/terragrunt/
+    ├── .envrc                  # Terragrunt-specific variables
+    ├── global/.envrc           # Global environment variables
+    ├── dev/.envrc              # Development environment variables
+    ├── staging/.envrc          # Staging environment variables
+    └── prod/.envrc             # Production environment variables
 ```
 
-## `.envrc` File Template
+## Configuration Principles
 
-Each environment's `.envrc` follows a consistent structure:
+### Inheritance Mechanism
+
+1. **Root Configuration**: Sets global defaults
+2. **Terragrunt Layer**: Defines project-wide Terragrunt settings
+3. **Environment Layers**: Provide environment-specific configurations
+   - Each layer can override or extend parent configurations
+
+### Core Utility Functions
+
+- `_safe_export`: Securely export environment variables
+- `_display_exported_vars`: Display current environment configuration
+- `_log`: Standardized logging mechanism
+
+## Example Configuration
+
+### Root .envrc (Typical Configuration)
 
 ```bash
 #!/usr/bin/env bash
-# Environment-Specific Configuration
+# Exit immediately if any command fails
+set -e
 
-# Inherit from parent configuration
-source_up || true
+# Set project root
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+export PROJECT_ROOT
 
 # Source utility functions
 source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
 
-# Environment Variables
-# Uncomment and modify as needed:
-# _safe_export ENVIRONMENT_TYPE "specific-type"
-# _safe_export RESOURCE_LIMITS "configuration"
+# Core initialization
+_core_init
 
-# Optional: Display exported variables
-_display_exported_vars "ENV_PREFIX_"
+# Default configurations
+_safe_export DEFAULT_REGION "us-east-1"
+_safe_export TF_INPUT "0"
+_safe_export LOG_LEVEL "info"
+
+# Application Metadata
+_safe_export TG_STACK_APP_PRODUCT_NAME "your-app-name"
 ```
 
-## Customization Strategies
+### Environment-Specific .envrc (e.g., staging/.envrc)
+
+```bash
+#!/usr/bin/env bash
+# Inherit from parent configuration
+source_up || {
+    echo >&2 "Warning: Could not source parent .envrc"
+}
+
+# Source utility functions
+source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
+
+# Environment-Specific Variables
+# Uncomment and modify as needed
+# _safe_export AWS_PROFILE "staging"
+# _safe_export TG_INSTANCE_TYPE "t3.medium"
+# _safe_export TG_MAX_CAPACITY "4"
+
+# Display exported variables
+_display_exported_vars "STAGING_"
+```
+
+## Variable Customization
 
 ### Adding New Variables
 
-1. **Global Variables** (root `.envrc`):
+1. **Global Variables**:
    ```bash
    _safe_export GLOBAL_SETTING "value"
    ```
@@ -91,26 +107,13 @@ _display_exported_vars "ENV_PREFIX_"
    _safe_export PROD_RESOURCE_SCALING "high"
    ```
 
-### Variable Inheritance and Overriding
+## Best Practices
 
-- Variables defined in child directories override parent configurations
-- Use `source_up` to inherit parent variables
-- Customize by uncommenting and modifying variables
+- Use `_safe_export` for all variable exports
+- Leverage `source_up` for configuration inheritance
+- Use environment-specific prefixes (DEV_, STAGING_, PROD_)
+- Keep sensitive information out of version control
 
-## Utility Functions Reference
-
-### `_safe_export`
-Securely export environment variables with validation:
-```bash
-_safe_export VARIABLE_NAME "value"
-```
-
-### `_display_exported_vars`
-Show exported variables with optional prefix filtering:
-```bash
-_display_exported_vars           # Show all variables
-_display_exported_vars "TG_"     # Show variables starting with TG_
-```
 ## Troubleshooting
 
 ### Common Issues
@@ -137,44 +140,7 @@ env | grep TG_
 DIRENV_LOG_FORMAT="" direnv allow
 ```
 
-## Advanced Configuration
-
-### Conditional Configurations
-
-```bash
-# Example of environment-specific configuration
-if [[ "$TG_ENV" == "dev" ]]; then
-  _safe_export DEV_SPECIFIC_SETTING "value"
-fi
-```
-
-### Custom Validation
-
-```bash
-# Custom validation function
-_validate_environment() {
-  local env_type="$1"
-  if [[ ! "$env_type" =~ ^(dev|staging|prod)$ ]]; then
-    _log "ERROR" "Invalid environment type: $env_type"
-    return 1
-  fi
-}
-```
-
-## Security Considerations
-
-- Variables containing "SECRET", "PASSWORD", or "KEY" are automatically masked
-- All variables are validated before export
-- Caller information is tracked for each variable set
-
-## Integration with Other Tools
-
-- Compatible with Terraform
-- Works seamlessly with Terragrunt
-- Supports Nix flake configurations
-
 ## Recommended Tools
 
 - [direnv](https://direnv.net/): Environment variable management
 - [sops](https://github.com/mozilla/sops): Secrets management
-- [pre-commit](https://pre-commit.com/): Git hooks for validation

@@ -240,12 +240,11 @@ _display_exported_vars() {
     _log "INFO" "Exported Environment Variables:"
     printf '%s\n' "${exported_vars[@]}" >&2
   else
-    _log "WARN" "No exported variables found${filter_prefix:+ with prefix '$filter_prefix'}"
+    _log "WARN" "No exported variables found$([ -n "$filter_prefix" ] && echo " with prefix '$filter_prefix'")"
   fi
 }
 
-# Update usage examples to include new function
-#
-# Example usage:
-# _display_exported_vars        # Show all exported variables
-# _display_exported_vars "TG_"  # Show only variables starting with TG_
+# Shellcheck directives for sourcing and shell compatibility
+# shellcheck shell=bash
+# shellcheck disable=SC2155
+true
