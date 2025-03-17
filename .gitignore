@@ -106,3 +106,10 @@ infra/.infractl-cache
 infra/.infractl-cache/*
 tools/infractl/target/infractl
 tools/infractl/infractl
+
+# Nix and direnv
+.direnv/
+.direnv.d/
+result
+result-*
+.nix-shell-inputs/

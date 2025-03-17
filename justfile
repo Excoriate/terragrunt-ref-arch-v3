@@ -68,6 +68,21 @@ allow-direnv:
     @echo "🔒 Allow direnv to run..."
     @direnv allow
 
+# 🔄 Reload direnv environment
+# Manually reload the direnv environment when needed
+reload-env:
+    @echo "🔄 Manually reloading direnv environment..."
+    @direnv reload
+
+# 🧹 Clean direnv cache
+# Removes the direnv cache to force a fresh environment build
+# Useful when experiencing issues with the development environment
+clean-direnv:
+    @echo "🧹 Cleaning direnv cache..."
+    @rm -rf .direnv
+    @direnv allow
+    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
+
 # 🔧 Setup environment variables
 # Helps users set up their environment variables with direnv
 # Creates a basic .envrc file if it doesn't exist and allows direnv to use it
@@ -85,9 +100,6 @@ setup-env:
         echo "Creating .envrc file with default values..."; \
         echo '#!/usr/bin/env bash' > .envrc; \
         echo '# Project environment configuration' >> .envrc; \
-        echo '' >> .envrc; \
-        echo '# Enable Nix flake support for direnv' >> .envrc; \
-        echo 'use flake' >> .envrc; \
         echo '' >> .envrc; \
         echo '# Source the shared utility functions' >> .envrc; \
         echo 'source "${PWD}/scripts/envrc-utils.sh"' >> .envrc; \
@@ -115,26 +127,6 @@ setup-env:
     @echo "Allowing direnv to use .envrc..."
     @direnv allow
     @echo "Environment setup complete!"
-
-# 🛠️ Enter Nix development shell
-# Provides a consistent development environment with all required tools
-# Uses flake.nix to ensure reproducible tool versions across all developers
-dev: allow-direnv
-    @echo "🔍 Verifying Git and Nix configuration..."
-    @if [ ! -f "flake.nix" ]; then echo "❌ flake.nix not found!"; exit 1; fi
-    @if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then echo "❌ Not in a Git repository!"; exit 1; fi
-    @if [ -n "$(git status --porcelain)" ]; then \
-        echo "⚠️  Git repository has uncommitted changes. This may cause issues with Nix flakes."; \
-        echo "Consider committing or stashing changes first."; \
-        read -p "Continue anyway? [y/N] " -n 1 -r; \
-        echo; \
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then \
-            echo "Aborting."; \
-            exit 1; \
-        fi \
-    fi
-    @echo "🚀 Entering Nix development shell..."
-    @NIXPKGS_ALLOW_UNFREE=1 nix develop --impure --extra-experimental-features "nix-command flakes"
 
 
 

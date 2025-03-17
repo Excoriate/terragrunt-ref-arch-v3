@@ -85,7 +85,7 @@ _layer_export() {
 # Sets PROJECT_ROOT environment variable
 _detect_project_root() {
   local current_dir="$PWD"
-  local root_markers=(".git" "flake.nix" "justfile")
+  local root_markers=(".git" "justfile")
 
   while [ "$current_dir" != "/" ]; do
     for marker in "${root_markers[@]}"; do
@@ -231,6 +231,10 @@ _display_exported_vars() {
   while IFS='=' read -r var value; do
     # Only include variables that match the optional prefix
     if [[ -z "$filter_prefix" ]] || [[ "$var" == "$filter_prefix"* ]]; then
+      # Mask sensitive values if needed
+      if [[ "$var" == *"SECRET"* || "$var" == *"PASSWORD"* || "$var" == *"KEY"* || "$var" == *"TOKEN"* ]]; then
+        value="[REDACTED]"
+      fi
       exported_vars+=("$var: $value")
     fi
   done < <(env | grep -E '^[A-Z_]+=' | sort)
