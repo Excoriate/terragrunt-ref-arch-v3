@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Layer-specific Environment Configuration Template
+# Inherits from parent .envrc and provides layer-specific overrides
+
+# Source parent .envrc for inheritance
+source_up || true
+
+# Source the shared utility functions
+source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
+
+# =====================================================================
+# LAYER VARIABLES - CUSTOMIZE THESE VALUES
+# =====================================================================
+
+# Define the layer name (change this to match your layer)
+LAYER_NAME="MY_LAYER"
+
+# Main layer initialization
+_layer_init() {
+  _layer_log "INFO" "Initializing $LAYER_NAME layer variables" "$LAYER_NAME"
+
+  # ---------------------------------------------------------------------
+  # Layer Identification
+  # ---------------------------------------------------------------------
+  _layer_export TG_LAYER "my-layer" "$LAYER_NAME"
+
+  # ---------------------------------------------------------------------
+  # AWS Configuration
+  # ---------------------------------------------------------------------
+  _layer_export AWS_PROFILE "my-profile" "$LAYER_NAME"
+  # Use the global AWS_REGION by default, or override it here
+  # _layer_export AWS_REGION "us-west-2" "$LAYER_NAME"
+
+  # ---------------------------------------------------------------------
+  # Resource Configuration
+  # ---------------------------------------------------------------------
+  _layer_export TG_RESOURCE_SUFFIX "my-suffix" "$LAYER_NAME"
+  _layer_export TG_INSTANCE_TYPE "t3.micro" "$LAYER_NAME"
+
+  # ---------------------------------------------------------------------
+  # Logging and Debugging Options
+  # ---------------------------------------------------------------------
+  _layer_export TERRAGRUNT_LOG_LEVEL "info" "$LAYER_NAME"
+  _layer_export TF_LOG "INFO" "$LAYER_NAME"
+
+  # ---------------------------------------------------------------------
+  # CUSTOM LAYER VARIABLES - ADD YOUR OWN BELOW
+  # ---------------------------------------------------------------------
+  # Example:
+  # _layer_export TG_CUSTOM_VAR "custom-value" "$LAYER_NAME"
+}
+
+# Execute layer initialization
+_layer_init
+
+# Display layer information
+_layer_env_info "$LAYER_NAME" \
+  "TG_LAYER:Layer Name" \
+  "AWS_PROFILE:AWS Profile" \
+  "TG_RESOURCE_SUFFIX:Resource Suffix" \
+  "TG_INSTANCE_TYPE:Instance Type" \
+  "TERRAGRUNT_LOG_LEVEL:Terragrunt Log Level"
