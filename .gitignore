@@ -9,6 +9,7 @@ node_modules
 .AI*
 .aider*
 .cursorrules
+.cursor*
 
 # testing
 coverage
@@ -59,6 +60,7 @@ storybook-static
 tailwind.css
 .aider*
 .AI*
+.cursor*
 .DS_Store
 
 # Go
@@ -105,3 +107,10 @@ infra/.infractl-cache
 infra/.infractl-cache/*
 tools/infractl/target/infractl
 tools/infractl/infractl
+
+# Nix and direnv
+.direnv/
+.direnv.d/
+result
+result-*
+.nix-shell-inputs/

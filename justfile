@@ -6,11 +6,6 @@
 # Centralize path management to ensure consistent directory references across recipes
 TERRAGRUNT_DIR := "./infra/terragrunt"
 
-# 🌍 Load environment variables
-# Automatically load environment-specific configurations from .env file
-# Enables flexible, environment-aware infrastructure management
-set dotenv-load
-
 # 🐚 Shell configuration
 # Use bash with strict error handling to prevent silent failures
 # -u: Treat unset variables as an error
@@ -66,5 +61,24 @@ tg-run-all-apply env="global" stack="dni":
 tg-run-all-destroy env="global" stack="dni":
     @cd infra/terragrunt/{{env}}/{{stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
 
+# 🛠️ Allow direnv to run
+# Ensures that direnv is allowed to run in the current directory
+# Useful for managing environment variables and configurations
+allow-direnv:
+    @echo "🔒 Allow direnv to run..."
+    @direnv allow
 
+# 🔄 Reload direnv environment
+# Manually reload the direnv environment when needed
+reload-env:
+    @echo "🔄 Manually reloading direnv environment..."
+    @direnv reload
 
+# 🧹 Clean direnv cache
+# Removes the direnv cache to force a fresh environment build
+# Useful when experiencing issues with the development environment
+clean-direnv:
+    @echo "🧹 Cleaning direnv cache..."
+    @rm -rf .direnv
+    @direnv allow
+    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
