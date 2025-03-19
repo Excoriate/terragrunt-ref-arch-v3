@@ -226,6 +226,26 @@ The `versions.tf` file is generated dynamically by terragrunt, and it's generate
 - The `unit_cfg_versions.hcl` file is not empty.
 - The `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` feature flag is set to `true` (default behavior)
 
+### 🔄 AWS Remote State Backend
+
+This reference architecture uses AWS S3 and DynamoDB for secure, scalable remote state management. A properly configured remote backend provides state locking, versioning, encryption, and access control.
+
+#### Setting Up Remote Backend
+
+The architecture requires an S3 bucket and DynamoDB table for storing and locking Terraform state. See our [AWS Remote Backend Setup Guide](docs/aws-remote-backend-setup.md) for detailed instructions on:
+
+- Creating a secure S3 bucket with proper versioning and encryption
+- Configuring a DynamoDB table for state locking
+- Setting up appropriate security measures
+- Configuring your environment to use the remote backend
+
+Once configured, update your environment variables to reference your backend:
+
+```bash
+TG_STACK_REMOTE_STATE_BUCKET_NAME="your-state-bucket"
+TG_STACK_REMOTE_STATE_LOCK_TABLE="your-lock-table"
+```
+
 ## 📚 Documentation
 
 Dive deep into our architecture with our detailed documentation:
@@ -247,6 +267,13 @@ Dive deep into our architecture with our detailed documentation:
    - Modular stack design
    - Component interaction patterns
    - Scalability considerations
+
+4. [AWS Remote Backend Setup](docs/aws-remote-backend-setup.md)
+
+   - S3 state storage configuration
+   - DynamoDB state locking
+   - Security best practices
+   - Troubleshooting guidance
 
 ## 🚀 Getting Started
 
