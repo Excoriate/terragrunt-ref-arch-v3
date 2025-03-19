@@ -54,28 +54,46 @@ terragrunt_format() {
     log_message "INFO" "ℹ️ Showing diffs between original and formatted files"
   fi
 
-  # Build exclude patterns for grep
-  local exclude_grep_pattern=""
-  if [[ -n "${exclude_pattern}" ]]; then
-    log_message "INFO" "ℹ️ Excluding directories: ${exclude_pattern}"
-    IFS=',' read -ra exclude_dirs <<< "${exclude_pattern}"
-    for dir in "${exclude_dirs[@]}"; do
-      exclude_grep_pattern="${exclude_grep_pattern} -e ${dir}"
-    done
-  fi
-
   # Change to the terragrunt directory
   cd "${terragrunt_dir}" || {
     log_message "ERROR" "Failed to change to directory: ${terragrunt_dir}"
     return 1
   }
 
-  # Find all HCL files, excluding specified directories
-  local hcl_files
-  if [[ -n "${exclude_grep_pattern}" ]]; then
-    hcl_files=$(find . -name "*.hcl" | grep -v "${exclude_grep_pattern}" || true)
-  else
-    hcl_files=$(find . -name "*.hcl" || true)
+  # Find all HCL files
+  local all_hcl_files
+  all_hcl_files=$(find . -name "*.hcl" || true)
+
+  # Always exclude .terragrunt-cache
+  if [[ -z "${exclude_pattern}" ]]; then
+    exclude_pattern=".terragrunt-cache"
+  elif [[ ! "${exclude_pattern}" =~ (^|,)\.terragrunt-cache(,|$) ]]; then
+    exclude_pattern="${exclude_pattern},.terragrunt-cache"
+  fi
+
+  # Apply exclude patterns if specified
+  local hcl_files="${all_hcl_files}"
+  if [[ -n "${exclude_pattern}" ]]; then
+    log_message "INFO" "ℹ️ Excluding patterns: ${exclude_pattern}"
+    local temp_file
+    temp_file=$(mktemp)
+    echo "${all_hcl_files}" > "${temp_file}"
+
+    IFS=',' read -ra exclude_patterns <<< "${exclude_pattern}"
+    for pattern in "${exclude_patterns[@]}"; do
+      log_message "DEBUG" "Excluding pattern: ${pattern}"
+      # Use grep to filter out lines containing the pattern
+      grep -v "${pattern}" "${temp_file}" > "${temp_file}.new"
+      mv "${temp_file}.new" "${temp_file}"
+    done
+
+    hcl_files=$(cat "${temp_file}")
+    rm "${temp_file}"
+
+    # Log excluded files count
+    local excluded_count
+    excluded_count=$(($(echo "${all_hcl_files}" | wc -l) - $(echo "${hcl_files}" | wc -l)))
+    log_message "INFO" "Excluded ${excluded_count} files matching patterns: ${exclude_pattern}"
   fi
 
   # Count total HCL files for reporting
