@@ -11,6 +11,7 @@ TERRAGRUNT_DIR := "./infra/terragrunt"
 # -u: Treat unset variables as an error
 # -e: Exit immediately if a command exits with a non-zero status
 set shell := ["bash", "-uce"]
+set dotenv-load
 
 # 📋 Default recipe: List all available commands
 # Provides a quick overview of available infrastructure management commands
@@ -32,6 +33,90 @@ tg-clean:
     @cd infra/terragrunt && find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
     @cd infra/terragrunt && find . -type d -name ".terraform" -exec rm -rf {} +
 
+# 🧹 Terragrunt format, run hclfmt on all Terragrunt files
+# Example: `just tg-format check=true diff=true exclude=".terragrunt-cache,modules"`
+tg-format check="false" diff="false" exclude="":
+    #!/usr/bin/env bash
+    echo "🔍 Advanced Terragrunt HCL Formatting"
+
+    # Set up the command base
+    CMD="terragrunt hclfmt"
+
+    # Add options based on parameters
+    if [[ "{{check}}" == "true" ]]; then
+        CMD="$CMD --check"
+        echo "ℹ️ Running in check-only mode (no changes will be made)"
+    fi
+
+    if [[ "{{diff}}" == "true" ]]; then
+        CMD="$CMD --diff"
+        echo "ℹ️ Showing diffs between original and formatted files"
+    fi
+
+    # Build exclude patterns for grep
+    EXCLUDE_PATTERN=""
+    if [[ -n "{{exclude}}" ]]; then
+        echo "ℹ️ Excluding directories: {{exclude}}"
+        IFS=',' read -ra EXCLUDE_DIRS <<< "{{exclude}}"
+        for dir in "${EXCLUDE_DIRS[@]}"; do
+            EXCLUDE_PATTERN="$EXCLUDE_PATTERN -e $dir"
+        done
+    fi
+
+    # Find all HCL files, excluding specified directories
+    cd {{TERRAGRUNT_DIR}}
+    if [[ -n "$EXCLUDE_PATTERN" ]]; then
+        HCL_FILES=$(find . -name "*.hcl" | grep -v $EXCLUDE_PATTERN)
+    else
+        HCL_FILES=$(find . -name "*.hcl")
+    fi
+
+    # Count total HCL files for reporting
+    TOTAL_FILES=$(echo "$HCL_FILES" | wc -l | xargs)
+    echo "📊 Found $TOTAL_FILES HCL files in {{TERRAGRUNT_DIR}}"
+
+    # Process each file individually
+    FORMATTED_COUNT=0
+    FAILED_COUNT=0
+    UNCHANGED_COUNT=0
+
+    echo "🔄 Formatting HCL files..."
+    while read -r file; do
+        if [[ -z "$file" ]]; then
+            continue
+        fi
+
+        echo "  Processing: $file"
+        if $CMD --file "$file" 2>/dev/null; then
+            if grep -q "was updated" <<< "$(terragrunt hclfmt --check --file "$file" 2>&1)"; then
+                FORMATTED_COUNT=$((FORMATTED_COUNT+1))
+                echo "    ✅ File updated: $file"
+            else
+                UNCHANGED_COUNT=$((UNCHANGED_COUNT+1))
+                echo "    ℹ️ Already formatted: $file"
+            fi
+        else
+            FAILED_COUNT=$((FAILED_COUNT+1))
+            echo "    ❌ Failed to format: $file"
+        fi
+    done <<< "$HCL_FILES"
+
+    # Show success message with stats
+    echo ""
+    echo "📊 Formatting Statistics:"
+    echo "   - Total files processed: $TOTAL_FILES"
+    if [[ "{{check}}" != "true" ]]; then
+        echo "   - Files updated: $FORMATTED_COUNT"
+    fi
+    echo "   - Files already formatted: $UNCHANGED_COUNT"
+    echo "   - Files failed: $FAILED_COUNT"
+
+    if [[ "{{check}}" == "true" ]]; then
+        echo "✅ HCL format check completed"
+    else
+        echo "✅ HCL formatting completed"
+    fi
+
 # 🚀 Run Terragrunt on a specific infrastructure unit
 # Flexible recipe for running Terragrunt commands on individual units
 # Parameters:
@@ -40,7 +125,7 @@ tg-clean:
 # - unit: Specific infrastructure unit (default: dni_generator)
 # - cmd: Terragrunt command (default: plan)
 # Example: `just tg-run env=staging stack=network unit=vpc cmd=apply`
-tg-run env="global" stack="dni" unit="dni_generator" cmd="plan":
+tg-run env="global" stack="dni" unit="dni_generator" cmd="init":
     @cd infra/terragrunt/{{env}}/{{stack}}/{{unit}} && terragrunt {{cmd}}
 
 # 🌐 Run Terragrunt plan across all units in a stack

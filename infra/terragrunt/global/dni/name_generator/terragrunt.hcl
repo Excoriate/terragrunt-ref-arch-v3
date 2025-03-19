@@ -37,7 +37,7 @@ locals {
   # - Precise version control
   # - Consistent module referencing across infrastructure
   # ---------------------------------------------------------------------------------------------------------------------
-  tf_module_local_path        = "${get_repo_root()}/infra/terraform/modules/name-generator"
+  tf_module_local_path       = "${get_repo_root()}/infra/terraform/modules/name-generator"
   tf_module_version_override = ""
   tf_module_version          = local.tf_module_version_override != "" ? local.tf_module_version_override : include.shared.locals.tf_module_version_default
   tf_module_source           = include.shared.locals.tf_module_source

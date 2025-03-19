@@ -121,13 +121,13 @@ locals {
 # Defines the input parameters for the infrastructure unit
 # Combines global configuration, metadata, and tag management
 inputs = {
-  input_lastname = "smith"  # Required input
-  suffix_length  = 6        # Optional, using default
-  gender         = "any"    # Optional, using default
+  input_lastname = "smith" # Required input
+  suffix_length  = 6       # Optional, using default
+  gender         = "any"   # Optional, using default
   tags           = local.all_tags
 }
 
 # Add explicit dependencies block
 dependencies {
-  paths = []  # No dependencies required
+  paths = [] # No dependencies required
 }

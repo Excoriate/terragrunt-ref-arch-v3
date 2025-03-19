@@ -139,15 +139,15 @@ dependencies {
 # Combines global configuration, metadata, and tag management
 inputs = {
   # Ensure all variables from variables.tf are explicitly set
-  prefix                   = ""  # Default empty string
-  generate_control_letter  = true  # Default true
-  name                     = dependency.name_generator.outputs.full_name
-  lastname                 = dependency.lastname_generator.outputs.full_lastname
+  prefix                  = ""   # Default empty string
+  generate_control_letter = true # Default true
+  name                    = dependency.name_generator.outputs.full_name
+  lastname                = dependency.lastname_generator.outputs.full_lastname
 
   # CRITICAL: Explicitly set the age variable
   # Use the dependency output or provide a default/mock value
-  age                      = dependency.age_generator.outputs.generated_age
+  age = dependency.age_generator.outputs.generated_age
 
-  country                  = "Spain"  # Default country
-  tags                     = local.all_tags
+  country = "Spain" # Default country
+  tags    = local.all_tags
 }
