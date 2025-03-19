@@ -3,5 +3,13 @@
   "engineVersion": "v0.16.3",
   "sdk": {
     "source": "go"
-  }
+  },
+  "include": [
+    "!../../.direnv",
+    "!../../.vscode",
+    "!../../.idea",
+    "!../../.trunk",
+    "!../../go.work",
+    "!../../go.work.sum"
+  ]
 }
