@@ -2,53 +2,54 @@
 
 ## Overview
 
-The Terragrunt Reference Architecture implements a sophisticated, hierarchical environment variable management system powered by [direnv](https://direnv.net/).
+The Terragrunt Reference Architecture implements a simplified yet powerful environment variable management system powered by [direnv](https://direnv.net/). This architecture now uses a single root `.envrc` file with category-based organization for improved clarity and easier customization.
 
 ## Key Features
 
-- **Hierarchical Inheritance**: Variables cascade from parent to child directories
-- **Layer-based Organization**: Variables grouped by logical layers
+- **Category-Based Organization**: Variables grouped by functional categories
 - **Secure Variable Handling**: Validation and export of environment variables
-- **Flexible Customization**: Easy-to-modify configuration points
+- **Flexible Customization**: Dedicated section for custom user variables
+- **Visual Clarity**: Emoji-tagged sections for improved readability
 
-## Configuration Hierarchy
+## Configuration Structure
 
 ```
 /
-├── .envrc                      # Root-level global configuration
-└── infra/terragrunt/
-    ├── .envrc                  # Terragrunt-specific variables
-    ├── global/.envrc           # Global environment variables
-    ├── dev/.envrc              # Development environment variables
-    ├── staging/.envrc          # Staging environment variables
-    └── prod/.envrc             # Production environment variables
+└── .envrc                      # Comprehensive root-level configuration
 ```
 
 ## Configuration Principles
 
-### Inheritance Mechanism
+### Organizational Structure
 
-1. **Root Configuration**: Sets global defaults
-2. **Terragrunt Layer**: Defines project-wide Terragrunt settings
-3. **Environment Layers**: Provide environment-specific configurations
-   - Each layer can override or extend parent configurations
+The root `.envrc` file is organized into the following categories:
+
+1. **Project Metadata**: Core project information and authorship
+2. **Cloud Provider Settings**: Region configuration and provider-specific settings
+3. **Terraform & Terragrunt Configuration**: Tool versions and behavior settings
+4. **Logging & Diagnostics**: Output verbosity and log storage
+5. **Remote State Configuration**: Backend storage for Terraform state
+6. **Custom Use-Case Variables**: User-defined environment variables
 
 ### Core Utility Functions
 
 - `_safe_export`: Securely export environment variables
+- `_layer_export`: Export variables with additional layer-specific logging
 - `_display_exported_vars`: Display current environment configuration
 - `_log`: Standardized logging mechanism
+- `_layer_env_info`: Display organized layer information with descriptions
 
-## Example Configuration
-
-### Root .envrc (Typical Configuration)
+## Root .envrc (Comprehensive Configuration)
 
 ```bash
 #!/usr/bin/env bash
+# Terragrunt Reference Architecture - Environment Configuration
+# Simplified and modular environment setup
+
 # Exit immediately if any command fails
 set -e
 
-# Set project root
+# Ensure PROJECT_ROOT is set reliably
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 export PROJECT_ROOT
 
@@ -58,60 +59,94 @@ source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
 # Core initialization
 _core_init
 
-# Default configurations
-_safe_export DEFAULT_REGION "us-east-1"
-_safe_export TF_INPUT "0"
-_safe_export LOG_LEVEL "info"
+# =====================================================================
+# 🔧 CUSTOMIZATION SECTION
+# =====================================================================
+# Configuration variables are grouped by functional categories for easier
+# customization and maintenance.
 
-# Application Metadata
-_safe_export TG_STACK_APP_PRODUCT_NAME "your-app-name"
-```
+# ---------------------------------------------------------------------
+# 1️⃣ PROJECT METADATA
+# ---------------------------------------------------------------------
+# Define core project information and authorship
+# ---------------------------------------------------------------------
+TG_STACK_APP_AUTHOR="${TG_STACK_APP_AUTHOR:-Your Name}"
+_safe_export TG_STACK_APP_AUTHOR "$TG_STACK_APP_AUTHOR"
 
-### Environment-Specific .envrc (e.g., staging/.envrc)
+TG_STACK_APP_PRODUCT_NAME="${TG_STACK_APP_PRODUCT_NAME:-your-app-name}"
+_safe_export TG_STACK_APP_PRODUCT_NAME "$TG_STACK_APP_PRODUCT_NAME"
 
-```bash
-#!/usr/bin/env bash
-# Inherit from parent configuration
-source_up || {
-    echo >&2 "Warning: Could not source parent .envrc"
-}
+# ---------------------------------------------------------------------
+# 2️⃣ CLOUD PROVIDER & REGION SETTINGS
+# ---------------------------------------------------------------------
+# Configure cloud provider-specific settings
+# ---------------------------------------------------------------------
+DEFAULT_REGION="${DEFAULT_REGION:-us-east-1}"
+_safe_export DEFAULT_REGION "$DEFAULT_REGION"
 
-# Source utility functions
-source "${PROJECT_ROOT}/scripts/envrc-utils.sh"
+# ---------------------------------------------------------------------
+# 3️⃣ TERRAFORM & TERRAGRUNT CONFIGURATION
+# ---------------------------------------------------------------------
+# Control Terraform behavior and version requirements
+# ---------------------------------------------------------------------
+# Core Terraform Settings
+TF_INPUT="${TF_INPUT:-0}"
+_safe_export TF_INPUT "$TF_INPUT"
 
-# Environment-Specific Variables
-# Uncomment and modify as needed
-# _safe_export AWS_PROFILE "staging"
-# _safe_export TG_INSTANCE_TYPE "t3.medium"
-# _safe_export TG_MAX_CAPACITY "4"
+TG_STACK_TF_VERSION="${TG_STACK_TF_VERSION:-1.9.0}"
+_safe_export TG_STACK_TF_VERSION "$TG_STACK_TF_VERSION"
 
-# Display exported variables
-_display_exported_vars "STAGING_"
+# Terragrunt Performance Settings
+TERRAGRUNT_DOWNLOAD_DIR="${TERRAGRUNT_DOWNLOAD_DIR:-${HOME}/.terragrunt-cache/$(basename "${PROJECT_ROOT}")}"
+_safe_export TERRAGRUNT_DOWNLOAD_DIR "$TERRAGRUNT_DOWNLOAD_DIR"
+
+TERRAGRUNT_CACHE_MAX_AGE="${TERRAGRUNT_CACHE_MAX_AGE:-168h}"
+_safe_export TERRAGRUNT_CACHE_MAX_AGE "$TERRAGRUNT_CACHE_MAX_AGE"
+
+# Terragrunt Behavior Settings
+TERRAGRUNT_LOG_LEVEL="${TERRAGRUNT_LOG_LEVEL:-info}"
+_safe_export TERRAGRUNT_LOG_LEVEL "$TERRAGRUNT_LOG_LEVEL"
+
+TERRAGRUNT_AUTO_INIT="${TERRAGRUNT_AUTO_INIT:-true}"
+_safe_export TERRAGRUNT_AUTO_INIT "$TERRAGRUNT_AUTO_INIT"
+
+# ---------------------------------------------------------------------
+# 6️⃣ CUSTOM USE-CASE VARIABLES
+# ---------------------------------------------------------------------
+# Add your custom environment variables below
+# Examples:
+# _safe_export TG_CUSTOM_VAR_1 "value1"
+# _safe_export TG_CUSTOM_VAR_2 "value2"
+# ---------------------------------------------------------------------
 ```
 
 ## Variable Customization
 
-### Adding New Variables
+### Adding New Custom Variables
 
-1. **Global Variables**:
-   ```bash
-   _safe_export GLOBAL_SETTING "value"
-   ```
+To add your own custom variables, locate the "CUSTOM USE-CASE VARIABLES" section in the root `.envrc` file and add your variables there:
 
-2. **Environment-Specific Variables**:
-   ```bash
-   # In dev/.envrc
-   _safe_export DEV_DEBUG_MODE "true"
-   
-   # In prod/.envrc
-   _safe_export PROD_RESOURCE_SCALING "high"
-   ```
+```bash
+# ---------------------------------------------------------------------
+# 6️⃣ CUSTOM USE-CASE VARIABLES
+# ---------------------------------------------------------------------
+# Add your custom environment variables below
+
+# Development-specific settings
+_safe_export TG_DEV_DEBUG_MODE "true"
+_safe_export TG_DEV_API_ENDPOINT "https://dev-api.example.com"
+
+# Production-specific settings
+_safe_export TG_PROD_RESOURCE_SCALING "high"
+_safe_export TG_PROD_REPLICA_COUNT "5"
+```
 
 ## Best Practices
 
-- Use `_safe_export` for all variable exports
-- Leverage `source_up` for configuration inheritance
-- Use environment-specific prefixes (DEV_, STAGING_, PROD_)
+- Use descriptive variable names with appropriate prefixes
+- Group related variables together in the custom section
+- Use `_safe_export` for all variable exports to ensure proper validation
+- Add comments to document the purpose of custom variables
 - Keep sensitive information out of version control
 
 ## Troubleshooting
@@ -119,13 +154,13 @@ _display_exported_vars "STAGING_"
 ### Common Issues
 
 1. **Variables Not Loading**
-   - Ensure `direnv` is installed
+   - Ensure `direnv` is installed: `which direnv`
    - Run `direnv allow` in the directory
-   - Check for syntax errors in `.envrc` files
+   - Check for syntax errors in the `.envrc` file
 
-2. **Inheritance Problems**
-   - Verify `source_up` is present
-   - Check for syntax errors preventing sourcing
+2. **Validation Failures**
+   - Verify required variables are properly defined
+   - Check the output of `_validate_layer_config` in the logs
 
 ### Debugging Commands
 

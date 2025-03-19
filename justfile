@@ -11,6 +11,7 @@ TERRAGRUNT_DIR := "./infra/terragrunt"
 # -u: Treat unset variables as an error
 # -e: Exit immediately if a command exits with a non-zero status
 set shell := ["bash", "-uce"]
+set dotenv-load
 
 # 📋 Default recipe: List all available commands
 # Provides a quick overview of available infrastructure management commands
@@ -32,34 +33,39 @@ tg-clean:
     @cd infra/terragrunt && find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
     @cd infra/terragrunt && find . -type d -name ".terraform" -exec rm -rf {} +
 
+# 🧹 Terragrunt format, run hclfmt on all Terragrunt files
+# Example: `just tg-format check=true diff=true exclude=".terragrunt-cache,modules"`
+tg-format check="false" diff="false" exclude="":
+    @echo "🔍 Running Terragrunt HCL formatting via utility script"
+    @./scripts/justfile-utils.sh "{{TERRAGRUNT_DIR}}" "{{check}}" "{{diff}}" "{{exclude}}"
+
+tg_env := "global"
+tg_stack := "dni"
+tg_unit := "dni_generator"
+
 # 🚀 Run Terragrunt on a specific infrastructure unit
 # Flexible recipe for running Terragrunt commands on individual units
-# Parameters:
-# - env: Environment (default: global)
-# - stack: Infrastructure stack (default: dni)
-# - unit: Specific infrastructure unit (default: dni_generator)
-# - cmd: Terragrunt command (default: plan)
-# Example: `just tg-run env=staging stack=network unit=vpc cmd=apply`
-tg-run env="global" stack="dni" unit="dni_generator" cmd="plan":
-    @cd infra/terragrunt/{{env}}/{{stack}}/{{unit}} && terragrunt {{cmd}}
+# Example: `just tg-run cmd=init`
+tg-run cmd="init":
+    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}}/{{tg_unit}} && terragrunt {{cmd}}
 
 # 🌐 Run Terragrunt plan across all units in a stack
 # Provides a comprehensive view of potential infrastructure changes
 # Useful for pre-deployment validation and impact assessment
-tg-run-all-plan env="global" stack="dni":
-    @cd infra/terragrunt/{{env}}/{{stack}} && terragrunt run-all plan
+tg-run-all-plan :
+    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all plan
 
 # 🚀 Apply infrastructure changes across all units in a stack
 # Automated, non-interactive deployment of infrastructure
 # Includes auto-approval to streamline deployment processes
-tg-run-all-apply env="global" stack="dni":
-    @cd infra/terragrunt/{{env}}/{{stack}} && terragrunt run-all apply --auto-approve --terragrunt-non-interactive
+tg-run-all-apply :
+    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all apply --auto-approve --terragrunt-non-interactive
 
 # 💥 Destroy infrastructure across all units in a stack
 # Provides a safe, controlled method for infrastructure teardown
 # Non-interactive with auto-approval for scripting and automation
-tg-run-all-destroy env="global" stack="dni":
-    @cd infra/terragrunt/{{env}}/{{stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
+tg-run-all-destroy:
+    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
 
 # 🛠️ Allow direnv to run
 # Ensures that direnv is allowed to run in the current directory

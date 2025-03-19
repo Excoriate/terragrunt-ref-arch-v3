@@ -40,9 +40,9 @@ locals {
   // - Consider additional context-specific tags
   tags = {
     // Stack-specific tags
-    Stack       = "dni"
-    Domain      = "myapp.com"
-    Purpose     = "DNI generation"
+    Stack   = "dni"
+    Domain  = "myapp.com"
+    Purpose = "DNI generation"
   }
 
   // 🔧 Stack Configuration Flags

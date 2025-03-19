@@ -17,10 +17,10 @@
 # ---------------------------------------------------------------------------------------------------------------------
 locals {
   tags = {
-    ManagedBy      = "Terraform"                          // 🛠️ Indicates the tool used for resource provisioning.
-    OrchestratedBy = "Terragrunt"                         // 🎛️ Indicates the tool used for workflow orchestration.
-    Author         = get_env("TG_STACK_APP_AUTHOR", "") // ✍️ The author of the configuration.
-    Type           = "infrastructure"                     // 📦 Categorizes the resource within the broader infrastructure ecosystem.
+    ManagedBy      = "Terraform"                                    // 🛠️ Indicates the tool used for resource provisioning.
+    OrchestratedBy = "Terragrunt"                                   // 🎛️ Indicates the tool used for workflow orchestration.
+    Author         = get_env("TG_STACK_APP_AUTHOR", "")             // ✍️ The author of the configuration.
+    Type           = "infrastructure"                               // 📦 Categorizes the resource within the broader infrastructure ecosystem.
     Application    = get_env("TG_STACK_APP_PRODUCT_NAME", "my-app") // 📱 The application or service that the resource supports.
     # TODO: Add git-sha tag. Uncomment when ready. Ensure there's at least one commit in the repository.
     # "git-sha"      = run_cmd("--terragrunt-global-cache", "--terragrunt-quiet", "git", "rev-parse", "--short", "HEAD")

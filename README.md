@@ -226,6 +226,26 @@ The `versions.tf` file is generated dynamically by terragrunt, and it's generate
 - The `unit_cfg_versions.hcl` file is not empty.
 - The `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` feature flag is set to `true` (default behavior)
 
+### 🔄 AWS Remote State Backend
+
+This reference architecture uses AWS S3 and DynamoDB for secure, scalable remote state management. A properly configured remote backend provides state locking, versioning, encryption, and access control.
+
+#### Setting Up Remote Backend
+
+The architecture requires an S3 bucket and DynamoDB table for storing and locking Terraform state. See our [AWS Remote Backend Setup Guide](docs/aws-remote-backend-setup.md) for detailed instructions on:
+
+- Creating a secure S3 bucket with proper versioning and encryption
+- Configuring a DynamoDB table for state locking
+- Setting up appropriate security measures
+- Configuring your environment to use the remote backend
+
+Once configured, update your environment variables to reference your backend:
+
+```bash
+TG_STACK_REMOTE_STATE_BUCKET_NAME="your-state-bucket"
+TG_STACK_REMOTE_STATE_LOCK_TABLE="your-lock-table"
+```
+
 ## 📚 Documentation
 
 Dive deep into our architecture with our detailed documentation:
@@ -247,6 +267,13 @@ Dive deep into our architecture with our detailed documentation:
    - Modular stack design
    - Component interaction patterns
    - Scalability considerations
+
+4. [AWS Remote Backend Setup](docs/aws-remote-backend-setup.md)
+
+   - S3 state storage configuration
+   - DynamoDB state locking
+   - Security best practices
+   - Troubleshooting guidance
 
 ## 🚀 Getting Started
 
@@ -310,76 +337,3 @@ For questions, support, or collaboration:
 
 - Open an [Issue](https://github.com/your-org/terragrunt-ref-arch-v3/issues)
 - Just reach out to me on [Linkedin](https://www.linkedin.com/in/alextorresruiz/)
-
-## ShellCheck Configuration
-
-This repository includes a `.shellcheckrc` configuration file to ensure consistent shell script quality. The configuration:
-
-- Specifies Bash as the shell dialect
-- Disables specific warnings that don't apply to our coding style
-- Enables optional checks for better code quality
-- Sets the severity level to warning
-- Allows sourcing of external files
-
-To run ShellCheck on shell scripts in this repository:
-
-```bash
-# Check a specific file
-shellcheck scripts/envrc-utils.sh
-
-# Check all shell scripts
-find . -name "*.sh" -exec shellcheck {} \;
-```
-
-For more information about ShellCheck, visit [shellcheck.net](https://www.shellcheck.net/).
-
-## Directory Structure
-
-```
-infra/terragrunt
-├── _shared
-│   ├── _config
-│   └── _units
-├── _templates
-├── config.hcl
-├── default.tfvars
-├── global
-│   ├── default.tfvars
-│   ├── dni
-│   │   ├── age_generator
-│   │   ├── dni_generator
-│   │   ├── lastname_generator
-│   │   ├── name_generator
-│   │   └── stack.hcl
-│   └── env.hcl
-└── root.hcl
-```
-
-## 🔧 Dynamic Environment Variable Management
-
-The reference architecture implements a sophisticated environment variable management system powered by [direnv](https://direnv.net/). 
-
-### Key Features
-- **Hierarchical Inheritance**: Variables cascade through project layers
-- **Secure Variable Handling**: Validated and securely exported environment variables
-- **Flexible Configuration**: Easy customization across different environments
-
-### Detailed Documentation
-
-For a comprehensive guide to environment variable management, including:
-- Configuration hierarchy
-- Utility functions
-- Variable customization
-- Best practices
-- Troubleshooting
-
-Please refer to our [Environment Variables Documentation](docs/environment-variables.md).
-
-### Quick Environment Setup
-
-1. Install [direnv](https://direnv.net/)
-2. Run `just setup-env` to create initial configuration
-3. Edit `.envrc` files to customize your environment
-4. Run `direnv allow` to load variables
-
-> **Pro Tip**: Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.

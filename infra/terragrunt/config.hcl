@@ -50,8 +50,8 @@ locals {
   // When set to "false", prevents version file generation if no versions are found
   // Default behavior (null/unset) allows generation based on configuration presence
   enable_versions_override = get_env("TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE", "true")
-  generate_versions_file = length(local.unit_cfg_versions.locals.versions) > 0 && (local.enable_versions_override == "true" || local.enable_versions_override == null) ? true : false
-  generate_providers_file = length(local.shared_config_providers.providers) > 0 && (local.enable_providers_override == "true" || local.enable_providers_override == null) ? true : false
+  generate_versions_file   = length(local.unit_cfg_versions.locals.versions) > 0 && (local.enable_versions_override == "true" || local.enable_versions_override == null) ? true : false
+  generate_providers_file  = length(local.shared_config_providers.providers) > 0 && (local.enable_providers_override == "true" || local.enable_providers_override == null) ? true : false
 
   // 🔍 Configuration Extraction
   // Simplifies access to nested configuration structures by creating direct references

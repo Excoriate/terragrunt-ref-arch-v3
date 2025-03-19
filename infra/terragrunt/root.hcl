@@ -4,8 +4,8 @@ locals {
   // This mechanism allows for modular and flexible infrastructure management across different environments.
   // When adding new configuration sources, ensure they follow the established path and naming conventions.
   # cfg = read_terragrunt_config("${get_parent_terragrunt_dir()}/config.hcl")
-  cfg     = read_terragrunt_config("${find_in_parent_folders("config.hcl")}")
-  env_cfg = read_terragrunt_config("${get_terragrunt_dir()}/../../env.hcl")
+  cfg       = read_terragrunt_config("${find_in_parent_folders("config.hcl")}")
+  env_cfg   = read_terragrunt_config("${get_terragrunt_dir()}/../../env.hcl")
   stack_cfg = read_terragrunt_config("${get_terragrunt_dir()}/../stack.hcl")
 
   // 🌍 Deployment Context Extraction
@@ -124,6 +124,10 @@ terraform {
   echo_remote_state_key_path               = run_cmd("sh", "-c", "echo '🔑  Remote State Key Path: ${local.remote_state_key_path}'")
   echo_is_using_providers_then_true        = run_cmd("sh", "-c", "echo '🔌  Is Using Providers: ${length(local.dynamic_providers) > 0 ? "true" : "false"}'")
   echo_is_overwriting_versionstf_then_true = run_cmd("sh", "-c", "echo '🔧  Is Overwriting Versions: ${length(local.dynamic_versions) > 0 ? "true" : "false"}'")
+
+  // 📢 State Information
+  echo_state_bucket_name = run_cmd("sh", "-c", "echo '🗄️  State Bucket Name: ${local.cfg.locals.bucket_name}'")
+  echo_state_lock_table  = run_cmd("sh", "-c", "echo '🔒  State Lock Table: ${local.cfg.locals.lock_table}'")
 }
 
 terraform {
@@ -191,16 +195,16 @@ remote_state {
 generate "providers" {
   path      = "providers.tf"
   if_exists = local.cfg.locals.generate_providers_file ? "overwrite" : "skip"
-  contents = local.cfg.locals.generate_providers_file ? join("\n", local.cfg.locals.shared_config_providers.providers) : ""
+  contents  = local.cfg.locals.generate_providers_file ? join("\n", local.cfg.locals.shared_config_providers.providers) : ""
 }
 
 // 🏗️ Intelligent Version Management
 // Dynamically handle provider versions across different infrastructure units.
 // Ensures compatibility and makes version updates a breeze.
 generate "versions" {
-  path = "versions.tf"
+  path      = "versions.tf"
   if_exists = local.cfg.locals.generate_versions_file ? "overwrite" : "skip"
-  contents = local.cfg.locals.generate_versions_file ? join("\n", local.cfg.locals.unit_cfg_versions.locals.versions) : ""
+  contents  = local.cfg.locals.generate_versions_file ? join("\n", local.cfg.locals.unit_cfg_versions.locals.versions) : ""
 }
 
 // 🔧 Terraform Version Enforcement
