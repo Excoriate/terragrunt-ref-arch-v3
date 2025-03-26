@@ -3,7 +3,7 @@ name: Lock Inactive Threads
 
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+    - cron: '0 0 * * 0' # Run weekly on Sunday at midnight
 
 permissions:
   issues: write
@@ -17,12 +17,10 @@ jobs:
         with:
           github-token: ${{ github.token }}
           issue-lock-comment: >
-            This issue has been inactive for 30 days and is now locked.
-            If you have a similar concern, please open a new issue with
-            detailed information about the Terragrunt Reference Architecture. 🏗️
+            This issue has been inactive for 30 days and is now locked. If you have a similar concern, please open a new issue
+            with detailed information about the Terragrunt Reference Architecture. 🏗️
           issue-lock-inactive-days: '30'
           pr-lock-comment: >
-            This pull request has been inactive for 30 days and is now locked.
-            If you wish to continue this contribution, please open a new PR
-            with updated changes. 🚧
+            This pull request has been inactive for 30 days and is now locked. If you wish to continue this contribution,
+            please open a new PR with updated changes. 🚧
           pr-lock-inactive-days: '30'

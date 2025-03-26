@@ -1,0 +1,74 @@
+---
+# yamllint configuration file
+# Flexible configuration for various YAML files, with special handling for GitHub Actions
+
+extends: default
+
+rules:
+  # # Indentation rules with more flexibility
+  # indentation:
+  #   # Allow 2 spaces for indentation
+  #   spaces: 2
+  #   indent-sequences: true
+  #   check-multi-line-strings: true
+
+  # Line length with some exceptions
+  line-length:
+    max: 250
+    level: warning
+    # Allow longer lines in specific files or sections
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+    ignore:
+      - '.github/workflows/*.yaml'
+      - '.github/workflows/*.yml'
+
+  # Truthy values handling
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']
+    check-keys: false # More lenient for workflow files
+
+  # Comments formatting
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
+
+  # Empty line control
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 0
+
+  # Braces and brackets
+  braces:
+    max-spaces-inside: 1
+    level: warning
+  brackets:
+    max-spaces-inside: 1
+    level: warning
+
+# Ignore patterns
+ignore: |
+  vendor/
+  node_modules/
+  dist/
+  .github/stale.yml
+  .pre-commit-config.yaml
+  **/.terraform-docs.yml
+
+# Specific overrides for GitHub Actions workflows
+overrides:
+  - files:
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
+    rules:
+      # Even more flexible indentation for workflow files
+      indentation:
+        spaces: 2
+      # Slightly more relaxed line length for workflow files
+      line-length:
+        max: 140
+        level: warning
+      # More lenient truthy checks
+      truthy:
+        level: warning

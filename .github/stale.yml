@@ -16,12 +16,11 @@ exemptLabels:
 staleLabel: stale
 # Comment to post when marking an issue as stale
 markComment: >
-  This issue in the Terragrunt Reference Architecture has been automatically marked as stale
-  due to 90 days of inactivity. It will be closed if no further activity occurs within 14 days.
-  If this issue remains relevant, please comment to keep it open. 🏗️
+  This issue in the Terragrunt Reference Architecture has been automatically marked as stale due to 90 days of inactivity.
+  It will be closed if no further activity occurs within 14 days. If this issue remains relevant, please comment to keep it
+  open. 🏗️
 # Comment to post when closing a stale issue
 closeComment: >
-  This issue has been automatically closed due to inactivity.
-  If the issue is still relevant to the Terragrunt Reference Architecture,
-  please reopen and provide updated context. Feel free to create a new issue
-  with the most recent information about infrastructure configuration. 👋
+  This issue has been automatically closed due to inactivity. If the issue is still relevant to the Terragrunt Reference Architecture,
+  please reopen and provide updated context. Feel free to create a new issue with the most recent information about infrastructure
+  configuration. 👋

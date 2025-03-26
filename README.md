@@ -136,7 +136,7 @@ Each `.envrc` file is organized into clear sections:
 
 ### 🔧 Dynamic Environment Variable Management
 
-A sophisticated environment variable management system powered by [direnv](https://direnv.net/). 
+A sophisticated environment variable management system powered by [direnv](https://direnv.net/).
 
 #### Key Features
 - Hierarchical inheritance of variables across project layers
