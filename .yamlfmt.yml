@@ -1,0 +1,66 @@
+---
+# yamlfmt configuration file
+# Comprehensive configuration to align with yamllint rules
+
+# Basic formatting rules
+formatter:
+  # Indent with 2 spaces for GitHub Actions workflows
+  indent: 2
+
+  # Line length configuration
+  max_line_length: 120
+
+  # Sequence and document handling
+  include_document_start: true
+  retain_line_breaks: true
+  canonical_lists: true
+
+# File matching
+include:
+  - '*.yaml'
+  - '*.yml'
+
+# Ignore patterns
+exclude:
+  - 'vendor/**'
+  - 'node_modules/**'
+  - 'dist/**'
+
+# Specific formatting rules
+rules:
+  # Braces and brackets spacing
+  braces:
+    max_spaces_inside: 1
+  brackets:
+    max_spaces_inside: 1
+
+  # Empty line control
+  empty_lines:
+    max: 2
+    max_start: 0
+    max_end: 0
+
+  # Truthy values handling
+  truthy:
+    allowed_values: ['true', 'false', 'yes', 'no']
+
+  # Trailing whitespace and line endings
+  trailing_whitespace: true
+  line_ending: unix
+
+  # Comments formatting
+  comments:
+    min_spaces_from_content: 1
+    require_starting_space: true
+
+  # Indentation rules
+  indentation:
+    indent_sequences: true
+    check_multi_line_strings: true
+
+  # Workflow-specific rules
+  workflow:
+    # Ensure consistent indentation for GitHub Actions workflows
+    indent_workflow_steps: true
+    # Normalize truthy values
+    normalize_truthy: true

@@ -7,9 +7,6 @@ daysUntilClose: 21
 responseRequiredLabel: needs-info
 # Comment to post when closing an Issue for lack of response. Set to `false` to disable
 closeComment: >-
-  This issue has been automatically closed due to lack of response.
-  For Terragrunt Reference Architecture issues, please provide:
-  - Specific configuration context
-  - Exact Terragrunt/Terraform version
-  - Detailed error logs or configuration snippets
-  Feel free to reopen with more details. 🏗️
+  This issue has been automatically closed due to lack of response. For Terragrunt Reference Architecture issues, please provide:
+  - Specific configuration context - Exact Terragrunt/Terraform version - Detailed error logs or configuration snippets Feel
+  free to reopen with more details. 🏗️

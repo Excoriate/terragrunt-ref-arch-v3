@@ -25,6 +25,16 @@ clean-ds:
     @echo "🧹 Cleaning .DS_Store files"
     @find . -name '.DS_Store' -type f -delete
 
+# 🔧 Install pre-commit hooks in local environment for code consistency
+hooks-install:
+    @echo "🧰 Installing pre-commit hooks locally..."
+    @./scripts/hooks/pre-commit-init.sh init
+
+# 🕵️ Run pre-commit hooks across all files in local environment
+hooks-run:
+    @echo "🔍 Running pre-commit hooks from .pre-commit-config.yaml..."
+    @./scripts/hooks/pre-commit-init.sh run
+
 # 🧹 Terragrunt and Terraform cache cleanup
 # Removes cached Terragrunt and Terraform directories to ensure clean state
 # Useful for troubleshooting and preventing stale cache-related issues

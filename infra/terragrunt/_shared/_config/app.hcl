@@ -7,4 +7,3 @@ locals {
   // 📦 Product Version
   product_version = "0.0.1" // The version of the project.
 }
-

@@ -1,0 +1,55 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0 # Updated rev for potentially newer hooks
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude: &readme_excludes >
+          (?x)^(
+            infra/terraform/modules/.*/README\.md|
+            infra/terragrunt/.*/README\.md|
+            docs/.*\.md|
+            README\.md|
+            CHANGELOG\.md
+          )$
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: detect-aws-credentials
+        args:
+          - '--allow-missing-credentials'
+      - id: check-json
+        exclude: &json_excludes >
+          (?x)^(
+            \.release-please-manifest\.json|
+            release-please-config\.json|
+            ci/ci-terragrunt/dagger\.json|
+            \.vscode/.*\.json
+          )$
+      - id: pretty-format-json
+        exclude: *json_excludes
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.16.0 # Keep existing or update if needed
+    hooks:
+      - id: yamlfmt
+        args: [--conf, .yamlfmt.yml] # Point to the root config file
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1 # Keep existing or update if needed
+    hooks:
+      - id: yamllint
+        name: YAML Lint
+        # Removed args: ['-c=.yamllint.yml'] as file doesn't exist
+        exclude: *readme_excludes # Exclude markdown files often containing YAML examples
+
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.25 # Keep existing or update if needed
+    hooks:
+      - id: shellcheck
+      - id: terragrunt-hclfmt
+      - id: terraform-validate
