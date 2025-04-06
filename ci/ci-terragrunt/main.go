@@ -180,12 +180,16 @@ func (m *Terragrunt) WithSecrets(ctx context.Context, secrets []*dagger.Secret) 
 // Returns:
 //   - The updated Terragrunt instance with source directory mounted
 func (m *Terragrunt) WithSRC(ctx context.Context, workdir string, dir *dagger.Directory) (*Terragrunt, error) {
-	if workdir != "" {
-		workdir = filepath.Join(defaultMntPath, workdir)
+	if workdir == "" {
+		workdir = defaultMntPath
+	} else {
+		if workdir != defaultMntPath {
+			workdir = filepath.Join(defaultMntPath, workdir)
+		}
 	}
 
 	if err := isNonEmptyDaggerDir(ctx, dir); err != nil {
-		return m, fmt.Errorf("failed to validate the src/ directory passed: %w", err)
+		return nil, fmt.Errorf("failed to validate the src/ directory passed: %w", err)
 	}
 
 	m.Ctr = m.Ctr.
@@ -274,22 +278,24 @@ func (m *Terragrunt) WithEnvVars(envVars []string) (*Terragrunt, error) {
 
 // WithTerraform sets the Terraform version to use and installs it.
 // It takes a version string as an argument and returns a pointer to a dagger.Container.
-func (m *Terragrunt) WithTerraform(version string) *dagger.Container {
+func (m *Terragrunt) WithTerraform(version string) *Terragrunt {
 	tfInstallationCmd := getTFInstallCmd(version)
-	return m.
-		Ctr.
-		WithExec([]string{tfInstallationCmd}).
+	m.Ctr = m.Ctr.
+		WithExec([]string{"/bin/sh", "-c", tfInstallationCmd}).
 		WithExec([]string{"terraform", "--version"})
+
+	return m
 }
 
 // WithTerragrunt sets the Terragrunt version to use and installs it.
 // It takes a version string as an argument and returns a pointer to a dagger.Container.
-func (m *Terragrunt) WithTerragrunt(version string) *dagger.Container {
+func (m *Terragrunt) WithTerragrunt(version string) *Terragrunt {
 	tgInstallationCmd := getTerragruntInstallationCommand(version)
-	return m.
-		Ctr.
-		WithExec([]string{tgInstallationCmd}).
+	m.Ctr = m.Ctr.
+		WithExec([]string{"/bin/sh", "-c", tgInstallationCmd}).
 		WithExec([]string{"terragrunt", "--version"})
+
+	return m
 }
 
 // WithNewNetrcFileGitHub creates a new .netrc file with the GitHub credentials.
@@ -378,6 +384,74 @@ func (m *Terragrunt) WithSSHAuthForTerraformModules(
 		WithUnixSocket(socketPath, sshAuthSocket, socketOpts)
 
 	return m
+}
+
+// Exec executes a given command within a dagger container.
+// It returns the output of the command or an error if the command is invalid or fails to execute.
+//
+//nolint:lll,cyclop // It's okay, since the ignore pattern is included
+func (m *Terragrunt) Exec(
+	// ctx is the context to use when executing the command.
+	// +optional
+	//nolint:contextcheck // It's okay, since the ignore pattern is included.
+	ctx context.Context,
+	// command is the terragrunt command to execute. It's the actual command that comes after 'terragrunt'
+	command string,
+	// args are the arguments to pass to the command.
+	// +optional
+	args []string,
+	// autoApprove is the flag to auto approve the command.
+	// +optional
+	autoApprove bool,
+	// src is the source directory that includes the source code.
+	// +defaultPath="/"
+	// +ignore=["*", "!**/*.hcl", "!**/*.tfvars", "!**/*.tfvars.json", "!**/*.tf"]
+	src *dagger.Directory,
+	// module is the module to execute or the terragrunt configuration where the terragrunt.hcl file is located.
+	// +optional
+	module string,
+	// envVars is the environment variables to pass to the container.
+	// +optional
+	envVars []string,
+	// secrets is the secrets to pass to the container.
+	// +optional
+	secrets []*dagger.Secret,
+) (*dagger.Container, error) {
+	tgCmd := []string{command}
+
+	if len(args) > 0 {
+		tgCmd = append(tgCmd, args...)
+	}
+
+	if autoApprove && (command == "apply" || command == "destroy") {
+		tgCmd = append(tgCmd, "--auto-approve")
+	}
+
+	if src != nil {
+		modWithSrc, err := m.WithSRC(ctx, module, src)
+
+		if err != nil {
+			return nil, WrapError(err, "failed to mount the source directory")
+		}
+
+		m = modWithSrc
+	}
+
+	if envVars != nil {
+		modWithEnvVars, err := m.WithEnvVars(envVars)
+
+		if err != nil {
+			return nil, WrapError(err, "failed to set the environment variables")
+		}
+
+		m = modWithEnvVars
+	}
+
+	if secrets != nil {
+		m.WithSecrets(ctx, secrets)
+	}
+
+	return m.Ctr.WithExec(tgCmd), nil
 }
 
 func getTFInstallCmd(tfVersion string) string {
