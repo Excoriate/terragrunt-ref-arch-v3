@@ -1,6 +1,6 @@
 {
   "name": "terragrunt",
-  "engineVersion": "v0.16.3",
+  "engineVersion": "v0.18.2",
   "sdk": {
     "source": "go"
   },

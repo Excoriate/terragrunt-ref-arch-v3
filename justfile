@@ -99,9 +99,20 @@ clean-direnv:
     @direnv allow
     @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
 
-# 🔍 Run Dagger CI for terragrunt
+# 🔍 Open Dagger CI terminal
 [working-directory:'ci/ci-terragrunt']
-ci-dagger-tg fn="open-terminal":
+ci-terminal fn="open-terminal":
+    @echo "🔍 Open Dagger CI terminal"
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call {{fn}}
+
+# 🔍 Run Dagger CI function
+[working-directory:'ci/ci-terragrunt']
+ci-fn fn="open-terminal":
     @echo "🔍 Running Dagger CI for terragrunt"
     @echo "🔍 Building the dagger module"
     @dagger develop
