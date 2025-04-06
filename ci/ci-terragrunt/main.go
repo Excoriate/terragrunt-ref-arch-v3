@@ -276,6 +276,20 @@ func (m *Terragrunt) WithEnvVars(envVars []string) (*Terragrunt, error) {
 	return m, nil
 }
 
+// WithToken adds a token to the Terragrunt container.
+//
+// This method adds a token to the container, making it available as an environment variable.
+//
+// Parameters:
+//   - ctx: The context for the Dagger container.
+//   - tokenValue: The value of the token to add to the container.
+//
+// Returns:
+//   - The updated Terragrunt instance with the token added
+func (m *Terragrunt) WithToken(ctx context.Context, tokenValue *dagger.Secret) *Terragrunt {
+	return m.WithSecrets(ctx, []*dagger.Secret{tokenValue})
+}
+
 // WithTerraform sets the Terraform version to use and installs it.
 // It takes a version string as an argument and returns a pointer to a dagger.Container.
 func (m *Terragrunt) WithTerraform(version string) *Terragrunt {
@@ -353,7 +367,7 @@ func (m *Terragrunt) WithNewNetrcFileAsSecretGitLab(username string, password *d
 	return m
 }
 
-// WithSSHAuthForTerraformModules configures SSH authentication for Terraform modules with Git SSH sources.
+// WithSSHAuthSocket configures SSH authentication for Terraform modules with Git SSH sources.
 //
 // This function mounts an SSH authentication socket into the container, enabling Terraform to authenticate
 // when fetching modules from Git repositories using SSH URLs (e.g., git@github.com:org/repo.git).
@@ -365,15 +379,21 @@ func (m *Terragrunt) WithNewNetrcFileAsSecretGitLab(username string, password *d
 //
 // Returns:
 //   - *Terragrunt: The updated Terragrunt instance with SSH authentication configured for Terraform modules.
-func (m *Terragrunt) WithSSHAuthForTerraformModules(
+func (m *Terragrunt) WithSSHAuthSocket(
 	// sshAuthSocket is the SSH socket to use for authentication.
 	sshAuthSocket *dagger.Socket,
 	// socketPath is the path where the SSH socket will be mounted in the container.
+	// +optional
 	socketPath string,
 	// owner is the owner of the mounted socket in the container. Optional parameter.
 	// +optional
 	owner string,
 ) *Terragrunt {
+	// Default the socket path if not provided
+	if socketPath == "" {
+		socketPath = "/ssh-agent.sock"
+	}
+
 	socketOpts := dagger.ContainerWithUnixSocketOpts{}
 
 	if owner != "" {
@@ -381,7 +401,8 @@ func (m *Terragrunt) WithSSHAuthForTerraformModules(
 	}
 
 	m.Ctr = m.Ctr.
-		WithUnixSocket(socketPath, sshAuthSocket, socketOpts)
+		WithUnixSocket(socketPath, sshAuthSocket, socketOpts).
+		WithEnvVariable("SSH_AUTH_SOCK", socketPath)
 
 	return m
 }
@@ -416,6 +437,18 @@ func (m *Terragrunt) Exec(
 	// secrets is the secrets to pass to the container.
 	// +optional
 	secrets []*dagger.Secret,
+	// tfToken is the Terraform registry token to pass to the container.
+	// +optional
+	tfToken *dagger.Secret,
+	// ghToken is the GitHub token to pass to the container.
+	// +optional
+	ghToken *dagger.Secret,
+	// glToken is the GitLab token to pass to the container.
+	// +optional
+	glToken *dagger.Secret,
+	// gitSshSocket is the Git SSH socket that can be forwarded from the host, to allow private git support through SSH
+	// +optional
+	gitSshSocket *dagger.Socket,
 ) (*dagger.Container, error) {
 	tgCmd := []string{command}
 
@@ -449,6 +482,22 @@ func (m *Terragrunt) Exec(
 
 	if secrets != nil {
 		m.WithSecrets(ctx, secrets)
+	}
+
+	if tfToken != nil {
+		m.WithToken(ctx, tfToken)
+	}
+
+	if ghToken != nil {
+		m.WithToken(ctx, ghToken)
+	}
+
+	if glToken != nil {
+		m.WithToken(ctx, glToken)
+	}
+
+	if gitSshSocket != nil {
+		m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
 	}
 
 	return m.Ctr.WithExec(tgCmd), nil
