@@ -99,24 +99,41 @@ clean-direnv:
     @direnv allow
     @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
 
-# 🔍 Open Dagger CI terminal
+# 🔍 Open Dagger CI terminal. E.g.: just ci-terminal --help
 [working-directory:'ci/ci-terragrunt']
-ci-terminal fn="open-terminal":
+ci-terminal args="":
     @echo "🔍 Open Dagger CI terminal"
     @echo "🔍 Building the dagger module"
     @dagger develop
     @echo "🔍 Inspecting the available functions"
     @dagger functions
     @echo "🔍 Running the function"
-    @dagger call {{fn}}
+    @dagger call open-terminal {{args}}
 
 # 🔍 Run Dagger CI function
 [working-directory:'ci/ci-terragrunt']
-ci-fn fn="open-terminal":
+ci-shell:
     @echo "🔍 Running Dagger CI for terragrunt"
     @echo "🔍 Building the dagger module"
     @dagger develop
     @echo "🔍 Inspecting the available functions"
     @dagger functions
     @echo "🔍 Running the function"
-    @dagger call {{fn}}
+    @dagger
+
+# aws_access_key_id := env("AWS_ACCESS_KEY_ID")
+# aws_secret_access_key := env("AWS_SECRET_ACCESS_KEY")
+
+# 🔍 Run Dagger CI function
+[working-directory:'ci/ci-terragrunt']
+ci-tg-unit-static-check env="global" layer="dni" unit="dni_generator":
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call job-terragrunt-unit-static-check \
+      --load-dot-env-file \
+      --no-cache \
+      --aws-access-key-id env://AWS_ACCESS_KEY_ID \
+      --aws-secret-access-key env://AWS_SECRET_ACCESS_KEY
