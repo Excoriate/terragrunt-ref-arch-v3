@@ -357,7 +357,7 @@ func (m *Terragrunt) JobTerragruntUnitStaticCheck(
 
 	// collectors
 	var collectedActionErrors []error
-	// I'm opinionated, here the key defined is "unit/command"
+	// I'm opinionated, here the key defined is "unit.command"
 	successfulOutputs := make(map[string]string)
 
 	for result := range resultChan {
@@ -378,26 +378,50 @@ func (m *Terragrunt) JobTerragruntUnitStaticCheck(
 	outputBuilder.WriteString("All static checks passed successfully.\n\nOutput per unit:\n")
 	outputBuilder.WriteString("=====================\n")
 
-	// Sort units for consistent output order
-	sortedUnits := make([]string, 0, len(units))
-	for _, u := range units {
-		if _, ok := successfulOutputs[u]; ok { // Only include units that ran successfully
-			sortedUnits = append(sortedUnits, u)
+	// Group outputs by unit
+	unitOutputs := make(map[string]map[string]string)
+	for key, output := range successfulOutputs {
+		parts := strings.Split(key, ".")
+		if len(parts) == 2 {
+			unit, command := parts[0], parts[1]
+			if _, ok := unitOutputs[unit]; !ok {
+				unitOutputs[unit] = make(map[string]string)
+			}
+			unitOutputs[unit][command] = output
 		}
+	}
+
+	// Sort units for consistent output order
+	sortedUnits := make([]string, 0, len(unitOutputs))
+	for unit := range unitOutputs {
+		sortedUnits = append(sortedUnits, unit)
 	}
 	sort.Strings(sortedUnits)
 
-	for _, unitName := range sortedUnits {
-		outputBuilder.WriteString(fmt.Sprintf("--- Unit: %s ---\n", unitName))
-		stdout := successfulOutputs[unitName]
-		if stdout == "" {
-			outputBuilder.WriteString("(No standard output)\n")
-		} else {
-			outputBuilder.WriteString(stdout)
-			// Ensure a newline after each unit's output if not already present
-			if !strings.HasSuffix(stdout, "\n") {
-				outputBuilder.WriteString("\n")
+	// Display outputs by unit and command
+	for _, unit := range sortedUnits {
+		outputBuilder.WriteString(fmt.Sprintf("--- Unit: %s ---\n", unit))
+
+		// Sort commands for consistent output order
+		commands := make([]string, 0, len(unitOutputs[unit]))
+		for cmd := range unitOutputs[unit] {
+			commands = append(commands, cmd)
+		}
+		sort.Strings(commands)
+
+		for _, cmd := range commands {
+			outputBuilder.WriteString(fmt.Sprintf("Command: %s\n", cmd))
+			stdout := unitOutputs[unit][cmd]
+			if stdout == "" {
+				outputBuilder.WriteString("(No standard output)\n")
+			} else {
+				outputBuilder.WriteString(stdout)
+				// Ensure a newline after each command's output if not already present
+				if !strings.HasSuffix(stdout, "\n") {
+					outputBuilder.WriteString("\n")
+				}
 			}
+			outputBuilder.WriteString("\n")
 		}
 		outputBuilder.WriteString("--------------------\n")
 	}
