@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"sync"
 )
 
 // ActionResult represents the result of a Ci action.
@@ -287,66 +286,53 @@ func (m *Terragrunt) JobTerragruntUnitStaticCheck(
 		},
 	}
 
-	var wg sync.WaitGroup
-	// Buffered channel, so I can collect the errors safely.
-	resultChan := make(chan ActionResult, len(units))
+	// Collect results sequentially
+	var results []ActionResult
 
-	// Run each unit check concurrently
+	// Run each unit check sequentially
 	for _, unit := range units {
 		for _, action := range actions {
-			currentUnit := unit
-			currentAction := action
+			var finalErr error
+			var finalOutput string
 
-			wg.Add(1)
+			// Builder
+			actionBuilder := m.NewAction(action.Command)
+			actionBuilder.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, unit)
+			actionBuilder.WithSource(m.Src)
+			actionBuilder.WithAWS(awsAccessKeyID, awsSecretAccessKey, "eu-central-1")
+			actionBuilder.WithNoCache()
+			actionBuilder.WithArgs(action.Args...)
+			actionBuilder.WithLoadDotEnvFile()
 
-			go func() {
-				defer wg.Done()
-				var finalErr error
-				var finalOutput string
-
-				// Builder
-				action := m.NewAction(currentAction.Command)
-				action.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
-				action.WithSource(m.Src)
-				action.WithAWS(awsAccessKeyID, awsSecretAccessKey, "eu-central-1")
-				action.WithNoCache()
-				action.WithArgs(currentAction.Args...)
-				action.WithLoadDotEnvFile()
-
-				// Execute
-				compiledCtr, buildErr := action.Execute(ctx)
-				if buildErr != nil {
-					finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
+			// Execute
+			compiledCtr, buildErr := actionBuilder.Execute(ctx)
+			if buildErr != nil {
+				finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", unit, defaulttRefArchLayer, unit)
+			} else {
+				// get the stdout of the action
+				stdOut, stdOutErr := compiledCtr.Stdout(ctx)
+				if stdOutErr != nil {
+					finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", unit, defaulttRefArchLayer, unit)
 				} else {
-					// get the stdout of the action
-					stdOut, stdOutErr := compiledCtr.Stdout(ctx)
-					if stdOutErr != nil {
-						finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
-					} else {
-						finalOutput = stdOut
-					}
+					finalOutput = stdOut
 				}
+			}
 
-				// Collect results
-				resultChan <- ActionResult{
-					Unit:   fmt.Sprintf("%s.%s", currentUnit, currentAction.Command),
-					Output: finalOutput,
-					Err:    finalErr,
-				}
-			}()
+			// Collect result
+			results = append(results, ActionResult{
+				Unit:   fmt.Sprintf("%s.%s", unit, action.Command),
+				Output: finalOutput,
+				Err:    finalErr,
+			})
 		}
 	}
-
-	// Wait for all goroutines to complete
-	wg.Wait()
-	close(resultChan)
 
 	// collectors
 	var collectedActionErrors []error
 	// I'm opinionated, here the key defined is "unit/command"
 	successfulOutputs := make(map[string]string)
 
-	for result := range resultChan {
+	for _, result := range results {
 		if result.Err != nil {
 			collectedActionErrors = append(collectedActionErrors, result.Err)
 		} else {
