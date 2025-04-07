@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // ActionResult represents the result of a Ci action.
@@ -242,6 +243,17 @@ func (ar ActionResult) String() string {
 	return fmt.Sprintf("Unit [%s]: OK (No specific output)", ar.Unit) // Or just OK
 }
 
+// cloneTerragrunt creates a deep copy of the Terragrunt struct to avoid concurrency issues
+func cloneTerragrunt(original *Terragrunt) *Terragrunt {
+	if original == nil {
+		return nil
+	}
+	return &Terragrunt{
+		Ctr: original.Ctr,
+		Src: original.Src,
+	}
+}
+
 func (m *Terragrunt) JobTerragruntUnitStaticCheck(
 	// ctx is the context for the Dagger container.
 	// +optional
@@ -286,53 +298,69 @@ func (m *Terragrunt) JobTerragruntUnitStaticCheck(
 		},
 	}
 
-	// Collect results sequentially
-	var results []ActionResult
+	var wg sync.WaitGroup
+	// Buffered channel, so we can collect the results safely.
+	resultChan := make(chan ActionResult, len(units)*len(actions))
 
-	// Run each unit check sequentially
+	// Run each unit check concurrently
 	for _, unit := range units {
 		for _, action := range actions {
-			var finalErr error
-			var finalOutput string
+			currentUnit := unit
+			currentAction := action
 
-			// Builder
-			actionBuilder := m.NewAction(action.Command)
-			actionBuilder.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, unit)
-			actionBuilder.WithSource(m.Src)
-			actionBuilder.WithAWS(awsAccessKeyID, awsSecretAccessKey, "eu-central-1")
-			actionBuilder.WithNoCache()
-			actionBuilder.WithArgs(action.Args...)
-			actionBuilder.WithLoadDotEnvFile()
+			wg.Add(1)
 
-			// Execute
-			compiledCtr, buildErr := actionBuilder.Execute(ctx)
-			if buildErr != nil {
-				finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", unit, defaulttRefArchLayer, unit)
-			} else {
-				// get the stdout of the action
-				stdOut, stdOutErr := compiledCtr.Stdout(ctx)
-				if stdOutErr != nil {
-					finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", unit, defaulttRefArchLayer, unit)
+			go func() {
+				defer wg.Done()
+				var finalErr error
+				var finalOutput string
+
+				// Create a clone of the Terragrunt struct to avoid concurrency issues
+				terragruntClone := cloneTerragrunt(m)
+
+				// Builder
+				actionBuilder := terragruntClone.NewAction(currentAction.Command)
+				actionBuilder.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
+				actionBuilder.WithSource(terragruntClone.Src)
+				actionBuilder.WithAWS(awsAccessKeyID, awsSecretAccessKey, "eu-central-1")
+				actionBuilder.WithNoCache()
+				actionBuilder.WithArgs(currentAction.Args...)
+				actionBuilder.WithLoadDotEnvFile()
+
+				// Execute
+				compiledCtr, buildErr := actionBuilder.Execute(ctx)
+				if buildErr != nil {
+					finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
 				} else {
-					finalOutput = stdOut
+					// get the stdout of the action
+					stdOut, stdOutErr := compiledCtr.Stdout(ctx)
+					if stdOutErr != nil {
+						finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
+					} else {
+						finalOutput = stdOut
+					}
 				}
-			}
 
-			// Collect result
-			results = append(results, ActionResult{
-				Unit:   fmt.Sprintf("%s.%s", unit, action.Command),
-				Output: finalOutput,
-				Err:    finalErr,
-			})
+				// Collect results
+				resultChan <- ActionResult{
+					Unit:   fmt.Sprintf("%s.%s", currentUnit, currentAction.Command),
+					Output: finalOutput,
+					Err:    finalErr,
+				}
+			}()
 		}
 	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(resultChan)
 
 	// collectors
 	var collectedActionErrors []error
 	// I'm opinionated, here the key defined is "unit/command"
 	successfulOutputs := make(map[string]string)
 
-	for _, result := range results {
+	for result := range resultChan {
 		if result.Err != nil {
 			collectedActionErrors = append(collectedActionErrors, result.Err)
 		} else {
