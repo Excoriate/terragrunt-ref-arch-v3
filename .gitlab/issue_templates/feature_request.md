@@ -1,6 +1,6 @@
 <!-- Title suggestion: [Feature]: Brief description -->
 
-/title [Feature]: 
+/title [Feature]:
 
 ## Feature Request
 
@@ -62,4 +62,4 @@ Select the priority level:
 - [ ] I have searched existing issues and verified this is not a duplicate
 
 /label ~enhancement ~needs-triage
-/assign me 
+/assign me

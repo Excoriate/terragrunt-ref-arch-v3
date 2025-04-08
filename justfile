@@ -98,3 +98,65 @@ clean-direnv:
     @rm -rf .direnv
     @direnv allow
     @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
+
+# 🔍 Open Dagger CI terminal. E.g.: just ci-terminal --help
+[working-directory:'ci/ci-terragrunt']
+ci-terminal args="":
+    @echo "🔍 Open Dagger CI terminal"
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call open-terminal {{args}}
+
+# 🔍 Run Dagger CI function
+[working-directory:'ci/ci-terragrunt']
+ci-shell:
+    @echo "🔍 Running Dagger CI for terragrunt"
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger
+
+# aws_access_key_id := env("AWS_ACCESS_KEY_ID")
+# aws_secret_access_key := env("AWS_SECRET_ACCESS_KEY")
+
+# 🔍 Run Dagger CI function
+[working-directory:'ci/ci-terragrunt']
+ci-job-units-static-check env="global" layer="dni" unit="dni_generator":
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call job-terragrunt-units-static-check \
+      --load-dot-env-file \
+      --no-cache \
+      --aws-access-key-id env://AWS_ACCESS_KEY_ID \
+      --aws-secret-access-key env://AWS_SECRET_ACCESS_KEY
+
+# 🔍 Run Dagger CI function
+[working-directory:'ci/ci-terragrunt']
+ci-job-units-plan env="global" layer="dni" unit="dni_generator":
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call job-terragrunt-units-plan \
+      --load-dot-env-file \
+      --no-cache \
+      --aws-access-key-id env://AWS_ACCESS_KEY_ID \
+      --aws-secret-access-key env://AWS_SECRET_ACCESS_KEY
+
+[working-directory:'ci/ci-terragrunt']
+ci-job-tfmodules-static-check:
+    @echo "🔍 Building the dagger module"
+    @dagger develop
+    @echo "🔍 Inspecting the available functions"
+    @dagger functions
+    @echo "🔍 Running the function"
+    @dagger call job-terraform-modules-static-check

@@ -275,6 +275,9 @@ Dive deep into our architecture with our detailed documentation:
    - Security best practices
    - Troubleshooting guidance
 
+5. [Dagger CI Module Guide](ci/README.md)
+   - Explains the included Dagger module for CI automation.
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -322,6 +325,14 @@ More recipes are available in the [justfile](justfile) file.
 3. Run `just setup-env` to create your environment configuration
 4. Run `direnv allow` to load environment variables
 5. Review documentation and customize configurations
+
+## 🤖 CI Automation with Dagger
+
+This reference architecture includes a [Dagger](https://dagger.io/) module located in [`ci/ci-terragrunt`](ci/ci-terragrunt) to automate Terragrunt workflows in CI pipelines.
+
+- **GitHub Actions:** A working example workflow demonstrating how to use the Dagger module for Terragrunt static checks and plans can be found in [`.github/workflows/dagger-ci.yml`](.github/workflows/dagger-ci.yml).
+- **Local Execution:** The [`justfile`](justfile) provides convenient recipes (e.g., `just ci-job-units-static-check`) for running these Dagger CI jobs locally.
+- **Module Details:** For a detailed explanation of the Dagger module's functions and how to extend it, see the [Dagger CI Module Guide](ci/README.md).
 
 ## 🤝 Contributing
 
