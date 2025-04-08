@@ -28,10 +28,11 @@ const (
 	defaultAWSRegion              = "us-east-1"
 	defaultAWSOidcTokenSecretName = "AWS_OIDC_TOKEN"
 	// Configuration
-	configRefArchRootPath          = "infra/terragrunt"
-	configterraformPluginCachePath = "/root/.terraform.d/plugin-cache"
-	configterragruntCachePath      = "/root/.terragrunt-cache"
-	configNetrcRootPath            = "/root/.netrc"
+	configRefArchRootPath                  = "infra/terragrunt"
+	configRefArchATerraformModulesRootPath = "infra/terraform/modules"
+	configterraformPluginCachePath         = "/root/.terraform.d/plugin-cache"
+	configterragruntCachePath              = "/root/.terragrunt-cache"
+	configNetrcRootPath                    = "/root/.netrc"
 )
 
 // Terragrunt represents a structure that encapsulates operations related to Terragrunt,
@@ -613,120 +614,85 @@ func (m *Terragrunt) WithAWSOIDC(
 	return m
 }
 
-// Exec executes a given command within a dagger container.
-// It returns the output of the command or an error if the command is invalid or fails to execute.
+// WithGitlabToken sets the GitLab token in the container.
 //
-//nolint:lll,cyclop // It's okay, since the ignore pattern is included
-func (m *Terragrunt) Exec(
-	// ctx is the context to use when executing the command.
-	// +optional
-	//nolint:contextcheck // It's okay, since the ignore pattern is included.
-	ctx context.Context,
-	// binary is the binary to execute, Possible and valid options are 'terragrunt', 'terraform'
-	// +optional
-	binary string,
-	// command is the terragrunt command to execute. It's the actual command that comes after 'terragrunt'
-	command string,
-	// args are the arguments to pass to the command.
-	// +optional
-	args []string,
-	// autoApprove is the flag to auto approve the command.
-	// +optional
-	autoApprove bool,
-	// src is the source directory that includes the source code.
-	src *dagger.Directory,
-	// tgUnitPath is the path to the terragrunt unit to execute.
-	// +optional
-	tgUnitPath string,
-	// envVars is the environment variables to pass to the container.
-	// +optional
-	envVars []string,
-	// secrets is the secrets to pass to the container.
-	// +optional
-	secrets []*dagger.Secret,
-	// tfToken is the Terraform registry token to pass to the container.
-	// +optional
-	tfToken *dagger.Secret,
-	// ghToken is the GitHub token to pass to the container.
-	// +optional
-	ghToken *dagger.Secret,
-	// glToken is the GitLab token to pass to the container.
-	// +optional
-	glToken *dagger.Secret,
-	// gitSshSocket is the Git SSH socket that can be forwarded from the host, to allow private git support through SSH
-	// +optional
-	gitSshSocket *dagger.Socket,
-	// printPaths is a boolean to print the paths of the mounted directories.
-	// +optional
-	printPaths bool,
-	// loadEnvFiles is a boolean to load the environment files.
-	// +optional
-	loadEnvFiles bool,
-) (*dagger.Container, error) {
-	cmdEntryPoint := getDefaultBinaryIfANotSet(binary)
+// This method sets the GitLab token in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - ctx: The context for the Dagger container.
+func (m *Terragrunt) WithGitlabToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
+	tokenTxtValue, _ := token.Plaintext(ctx)
+	m.Ctr = m.Ctr.
+		WithEnvVariable("GITLAB_TOKEN", tokenTxtValue)
 
-	tgCmd := []string{cmdEntryPoint, command}
+	return m
+}
 
-	if len(args) > 0 {
-		tgCmd = append(tgCmd, args...)
-	}
+// WithGitHubToken sets the GitHub token in the container.
+//
+// This method sets the GitHub token in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - ctx: The context for the Dagger container.
+func (m *Terragrunt) WithGitHubToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
+	tokenTxtValue, _ := token.Plaintext(ctx)
+	m.Ctr = m.Ctr.
+		WithEnvVariable("GITHUB_TOKEN", tokenTxtValue)
 
-	if autoApprove && (command == "apply" || command == "destroy") {
-		tgCmd = append(tgCmd, "--auto-approve")
-	}
+	return m
+}
 
-	if tgUnitPath != "" {
-		tgCmd = append(tgCmd, "--working-dir", tgUnitPath)
-	}
+// WithTerraformToken sets the Terraform token in the container.
+//
+// This method sets the Terraform token in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - ctx: The context for the Dagger container.
+func (m *Terragrunt) WithTerraformToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
+	tokenTxtValue, _ := token.Plaintext(ctx)
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TF_TOKEN", tokenTxtValue)
 
-	_, srcErr := m.WithSRC(ctx, "", src, printPaths)
+	return m
+}
 
-	if srcErr != nil {
-		return nil, WrapError(srcErr, "failed to mount the source directory")
-	}
+// WithTerragruntLogLevel sets the Terragrunt log level in the container.
+//
+// This method sets the Terragrunt log level in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - level: The log level to set.
+func (m *Terragrunt) WithTerragruntLogLevel(level string) *Terragrunt {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TERRAGRUNT_LOG_LEVEL", level)
 
-	if envVars != nil {
-		modWithEnvVars, err := m.WithEnvVars(envVars)
+	return m
+}
 
-		if err != nil {
-			return nil, WrapError(err, "failed to set the environment variables")
-		}
+// WithTerragruntNonInteractive sets the Terragrunt non interactive option in the container.
+//
+// This method sets the Terragrunt non interactive option in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - level: The log level to set.
+func (m *Terragrunt) WithTerragruntNonInteractive() *Terragrunt {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TERRAGRUNT_NON_INTERACTIVE", "true")
 
-		m = modWithEnvVars
-	}
+	return m
+}
 
-	if secrets != nil {
-		m.WithSecrets(ctx, secrets)
-	}
+// WithTerragruntNoColor sets the Terragrunt no color option in the container.
+//
+// This method sets the Terragrunt no color option in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - level: The log level to set.
+func (m *Terragrunt) WithTerragruntNoColor() *Terragrunt {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TERRAGRUNT_NO_COLOR", "true")
 
-	if tfToken != nil {
-		m.WithToken(ctx, tfToken)
-	}
-
-	if ghToken != nil {
-		m.WithToken(ctx, ghToken)
-	}
-
-	if glToken != nil {
-		m.WithToken(ctx, glToken)
-	}
-
-	if gitSshSocket != nil {
-		m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
-	}
-
-	if loadEnvFiles {
-		// At this point, m.Src is either the directory passed, or the one set at the constructor.
-		ctrWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
-
-		if err != nil {
-			return nil, WrapError(err, "failed to load .env files")
-		}
-
-		m = ctrWithDotEnvLoaded
-	}
-
-	return m.Ctr.WithExec(tgCmd), nil
+	return m
 }
 
 // WithDotEnvFile loads and processes environment variables from .env files in the provided directory.
@@ -785,163 +751,143 @@ func (m *Terragrunt) WithDotEnvFile(ctx context.Context, src *dagger.Directory) 
 	return m, nil
 }
 
-// parseDotEnvFiles processes .env files found by WithDotEnvFile.
-// It handles basic .env syntax including comments (#), empty lines,
-// KEY=VALUE pairs, whitespace trimming, and basic quote removal (' or ").
-func parseDotEnvFiles(ctx context.Context, container *dagger.Container, src *dagger.Directory, envFiles []string) (*dagger.Container, error) {
-	for _, file := range envFiles {
-		fileContent, err := src.File(file).Contents(ctx)
+// Exec executes a given command within a dagger container.
+// It returns the output of the command or an error if the command is invalid or fails to execute.
+//
+//nolint:lll,cyclop // It's okay, since the ignore pattern is included
+func (m *Terragrunt) Exec(
+	// ctx is the context to use when executing the command.
+	// +optional
+	//nolint:contextcheck // It's okay, since the ignore pattern is included.
+	ctx context.Context,
+	// binary is the binary to execute, Possible and valid options are 'terragrunt', 'terraform'
+	// +optional
+	binary string,
+	// command is the terragrunt command to execute. It's the actual command that comes after 'terragrunt'
+	command string,
+	// args are the arguments to pass to the command.
+	// +optional
+	args []string,
+	// autoApprove is the flag to auto approve the command.
+	// +optional
+	autoApprove bool,
+	// src is the source directory that includes the source code.
+	src *dagger.Directory,
+	// tgExecutionPath is the path to the terragrunt unit to execute.
+	// +optional
+	tgExecutionPath string,
+	// envVars is the environment variables to pass to the container.
+	// +optional
+	envVars []string,
+	// secrets is the secrets to pass to the container.
+	// +optional
+	secrets []*dagger.Secret,
+	// tfToken is the Terraform registry token to pass to the container.
+	// +optional
+	tfToken *dagger.Secret,
+	// ghToken is the GitHub token to pass to the container.
+	// +optional
+	ghToken *dagger.Secret,
+	// glToken is the GitLab token to pass to the container.
+	// +optional
+	glToken *dagger.Secret,
+	// gitSshSocket is the Git SSH socket that can be forwarded from the host, to allow private git support through SSH
+	// +optional
+	gitSshSocket *dagger.Socket,
+	// printPaths is a boolean to print the paths of the mounted directories.
+	// +optional
+	printPaths bool,
+	// loadEnvFiles is a boolean to load the environment files.
+	// +optional
+	loadEnvFiles bool,
+	// tgOptLogLevel is the log level to set for the Terragrunt command.
+	// +optional
+	tgOptLogLevel string,
+	// tgOptNoColor is a boolean to set the Terragrunt no color option.
+	// +optional
+	tgOptNoColor bool,
+	// tgOptNonInteractive is a boolean to set the Terragrunt non interactive option.
+	// +optional
+	tgOptNonInteractive bool,
+) (*dagger.Container, error) {
+	cmdEntryPoint := getDefaultBinaryIfANotSet(binary)
+
+	tgCmd := []string{cmdEntryPoint, command}
+
+	if len(args) > 0 {
+		tgCmd = append(tgCmd, args...)
+	}
+
+	if autoApprove && (command == "apply" || command == "destroy") {
+		tgCmd = append(tgCmd, "--auto-approve")
+	}
+
+	if tgExecutionPath != "" && binary == "terragrunt" {
+		tgCmd = append(tgCmd, "--working-dir", tgExecutionPath)
+	}
+
+	if binary == "terraform" {
+		_, srcErr := m.WithSRC(ctx, tgExecutionPath, src, printPaths)
+		if srcErr != nil {
+			return nil, WrapErrorf(srcErr, "failed to mount the source directory with workdir %s for binary terraform", tgExecutionPath)
+		}
+	} else {
+		// It's not needed the workdir ir, since with terragrunt I use --working-dir
+		_, _ = m.WithSRC(ctx, "", src, printPaths)
+	}
+
+	if envVars != nil {
+		modWithEnvVars, err := m.WithEnvVars(envVars)
+
 		if err != nil {
-			// Wrap error for better context
-			return nil, fmt.Errorf("failed to read dot env file '%s': %w", file, err)
+			return nil, WrapError(err, "failed to set the environment variables")
 		}
 
-		lines := strings.Split(fileContent, "\n")
-
-		for lineNum, line := range lines {
-			trimmedLine := strings.TrimSpace(line)
-
-			// Skip empty lines and comments
-			if trimmedLine == "" || strings.HasPrefix(trimmedLine, "#") {
-				continue
-			}
-
-			// Split line into key/value pair by the first '='
-			parts := strings.SplitN(trimmedLine, "=", 2)
-			if len(parts) != 2 {
-				// Return error for lines without '='
-				return nil, fmt.Errorf("invalid format in file '%s' on line %d: '%s'", file, lineNum+1, trimmedLine)
-			}
-
-			key := strings.TrimSpace(parts[0])
-			value := strings.TrimSpace(parts[1])
-
-			// Check for empty key
-			if key == "" {
-				return nil, fmt.Errorf("empty key found in file '%s' on line %d: '%s'", file, lineNum+1, trimmedLine)
-			}
-
-			// Trim surrounding quotes (basic handling)
-			if len(value) >= 2 {
-				if (value[0] == '"' && value[len(value)-1] == '"') || (value[0] == '\'' && value[len(value)-1] == '\'') {
-					value = value[1 : len(value)-1]
-				}
-			}
-
-			// Determine if it's a secret based on filename
-			isSecret := strings.Contains(file, "secret")
-
-			if isSecret {
-				// Use a distinct name for the Dagger secret object itself
-				secretName := fmt.Sprintf("%s_secret_%s", key, file)
-				container = container.WithSecretVariable(key, dag.SetSecret(secretName, value))
-			} else {
-				container = container.WithEnvVariable(key, value)
-			}
-		}
+		m = modWithEnvVars
 	}
 
-	return container, nil
-}
-
-func getTFInstallCmd(tfVersion string) string {
-	installDir := "/usr/local/bin/terraform"
-	command := fmt.Sprintf(`apk add --no-cache curl unzip &&
-	curl -L https://releases.hashicorp.com/terraform/%[1]s/terraform_%[1]s_linux_amd64.zip -o /tmp/terraform.zip &&
-	unzip /tmp/terraform.zip -d /tmp &&
-	mv /tmp/terraform %[2]s &&
-	chmod +x %[2]s &&
-	rm /tmp/terraform.zip`, tfVersion, installDir)
-
-	return strings.TrimSpace(command)
-}
-
-func getTerragruntInstallationCommand(version string) string {
-	installDir := "/usr/local/bin"
-	installPath := filepath.Join(installDir, "terragrunt")
-	command := fmt.Sprintf(`set -ex
-curl -L https://github.com/gruntwork-io/terragrunt/releases/download/v%s/terragrunt_linux_amd64 -o %s
-chmod +x %s`, version, installPath, installPath)
-
-	return strings.TrimSpace(command)
-}
-
-func isNonEmptyDaggerDir(ctx context.Context, dir *dagger.Directory) error {
-	if dir == nil {
-		return fmt.Errorf("dagger directory cannot be nil")
+	if secrets != nil {
+		m.WithSecrets(ctx, secrets)
 	}
 
-	entries, err := dir.Entries(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get entries from the dagger directory passed: %w", err)
+	if tfToken != nil {
+		m.WithTerraformToken(ctx, tfToken)
 	}
 
-	if len(entries) == 0 {
-		return fmt.Errorf("no entries found in the dagger directory passed")
+	if ghToken != nil {
+		m.WithGitHubToken(ctx, ghToken)
 	}
 
-	return nil
-}
-
-func getDefaultAWSRegionIfNotSet(awsRegion string) string {
-	if awsRegion == "" {
-		return defaultAWSRegion
+	if glToken != nil {
+		m.WithGitlabToken(ctx, glToken)
 	}
 
-	return awsRegion
-}
-
-func getDefaultBinaryIfANotSet(binary string) string {
-	if binary == "" {
-		return defaultBinary
+	if gitSshSocket != nil {
+		m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
 	}
 
-	return binary
-}
-
-func getTerragruntExecutionPath(env, layer, unit string) string {
-	if env == "" {
-		env = defaultRefArchEnv
+	if tgOptLogLevel != "" {
+		m.WithTerragruntLogLevel(tgOptLogLevel)
 	}
 
-	if layer == "" {
-		layer = defaulttRefArchLayer
+	if tgOptNoColor {
+		m.WithTerragruntNoColor()
 	}
 
-	if unit == "" {
-		unit = defaulttRefArchUnit
+	if tgOptNonInteractive {
+		m.WithTerragruntNonInteractive()
 	}
 
-	return filepath.Join(configRefArchRootPath, env, layer, unit)
-}
+	if loadEnvFiles {
+		// At this point, m.Src is either the directory passed, or the one set at the constructor.
+		ctrWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
 
-type EnvVarDagger struct {
-	Key   string
-	Value string
-}
-
-func getEnvVarsDaggerFromSlice(envVars []string) ([]EnvVarDagger, error) {
-	envVarsDagger := []EnvVarDagger{}
-	for _, envVar := range envVars {
-		trimmedEnvVar := strings.TrimSpace(envVar)
-		if trimmedEnvVar == "" {
-			return nil, NewError("environment variable cannot be empty")
+		if err != nil {
+			return nil, WrapError(err, "failed to load .env files")
 		}
 
-		if !strings.Contains(trimmedEnvVar, "=") {
-			return nil, NewError(fmt.Sprintf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar))
-		}
-
-		parts := strings.Split(trimmedEnvVar, "=")
-		if len(parts) != 2 {
-			return nil, NewError(fmt.Sprintf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar))
-		}
-
-		envVarsDagger = append(envVarsDagger, EnvVarDagger{
-			Key:   parts[0],
-			Value: parts[1],
-		})
+		m = ctrWithDotEnvLoaded
 	}
 
-	return envVarsDagger, nil
+	return m.Ctr.WithExec(tgCmd), nil
 }

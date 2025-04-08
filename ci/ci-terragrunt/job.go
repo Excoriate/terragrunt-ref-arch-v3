@@ -36,10 +36,12 @@ type ActionCmd struct {
 type TerragruntActionBuilder struct {
 	parent             *Terragrunt       // Reference to the main Terragrunt module that this action belongs to.
 	command            string            // The specific Terragrunt command to be executed (e.g., "hclfmt", "validate", "init").
+	binary             string            // The binary to be used for this action (e.g., "terragrunt", "terraform").
 	args               []string          // A slice of additional arguments to be passed to the command.
 	unitEnv            string            // The environment in which the Terragrunt unit operates (e.g., "global").
 	unitLayer          string            // The layer of the Terragrunt unit (e.g., "dni").
 	unitName           string            // The name of the Terragrunt unit (e.g., "dni_generator").
+	tfModule           string            // The name of the Terraform module (e.g., "dni_generator").
 	src                *dagger.Directory // The source directory for this action, defaults to the parent module's source directory.
 	awsAccessKeyID     *dagger.Secret    // The AWS Access Key ID to be used for this action, if applicable.
 	awsSecretKey       *dagger.Secret    // The AWS Secret Key to be used for this action, if applicable.
@@ -89,6 +91,7 @@ func (m *Terragrunt) NewAction(command string) *TerragruntActionBuilder {
 		unitEnv:   defaultRefArchEnv,
 		unitLayer: defaulttRefArchLayer,
 		unitName:  defaulttRefArchUnit,
+		binary:    "terragrunt",
 		awsRegion: "eu-central-1",
 		envVars:   []string{},
 		secrets:   []*dagger.Secret{},
@@ -124,6 +127,21 @@ func (b *TerragruntActionBuilder) ForTgUnit(env, layer, unit string) *Terragrunt
 	b.unitLayer = layer
 	b.unitName = unit
 
+	return b
+}
+
+// ForTgModule configures the Terragrunt action with the specified Terraform module name.
+// This method allows the user to set the context in which the Terragrunt command will be executed.
+// If the module name is empty, the action will not be configured for a specific module.
+//
+// Parameters:
+//   - module: A string representing the name of the Terraform module (e.g., "dni_generator").
+func (b *TerragruntActionBuilder) ForTgModule(module string) *TerragruntActionBuilder {
+	if module == "" {
+		return b
+	}
+
+	b.tfModule = module
 	return b
 }
 
@@ -164,6 +182,11 @@ func (b *TerragruntActionBuilder) WithSource(src *dagger.Directory) *TerragruntA
 		b.src = src
 	}
 
+	return b
+}
+
+func (b *TerragruntActionBuilder) WithTerraformInsteadOfTerragrunt() *TerragruntActionBuilder {
+	b.binary = "terraform"
 	return b
 }
 
@@ -439,14 +462,24 @@ func (b *TerragruntActionBuilder) Execute(ctx context.Context) (*dagger.Containe
 		return nil, NewError("cannot execute action: command is empty")
 	}
 
+	// Validate that the binary is set
+	if b.binary == "" {
+		return nil, NewError("cannot execute action: binary is empty. Binary should be either 'terragrunt' or 'terraform'")
+	}
+
 	// Validate that the source directory is set
 	if b.src == nil {
 		return nil, NewError("cannot execute action: source directory is nil")
 	}
 
 	// Set the execution path for Terragrunt based on the unit environment,
-	// layer, and name
-	actionWorkDir := getTerragruntExecutionPath(b.unitEnv, b.unitLayer, b.unitName)
+	// layer, and name, or for Terraform modules based on the module name
+	var actionWorkDir string
+	if b.binary == "terragrunt" {
+		actionWorkDir = getTerragruntExecutionPath(b.unitEnv, b.unitLayer, b.unitName)
+	} else {
+		actionWorkDir = getTerraformModulesExecutionPath(b.tfModule)
+	}
 
 	// Create a local copy of the parent Terragrunt instance to avoid
 	// modifying shared state during execution
@@ -500,7 +533,7 @@ func (b *TerragruntActionBuilder) Execute(ctx context.Context) (*dagger.Containe
 	// Execute the Terragrunt command with the specified parameters
 	execCtr, execErr := localParent.Exec(
 		ctx,
-		"terragrunt",
+		b.binary,
 		b.command,
 		b.args,
 		b.autoApprove, // Use the autoApprove setting from the builder
@@ -514,6 +547,9 @@ func (b *TerragruntActionBuilder) Execute(ctx context.Context) (*dagger.Containe
 		b.gitSshSocket, // Use the Git SSH socket from the builder
 		false,
 		b.loadDotEnvFile, // loadDotEnvFile - assumes Exec handles this contextually
+		"",
+		false,
+		false,
 	)
 
 	// Handle any errors that occur during execution
@@ -549,7 +585,7 @@ func cloneTerragrunt(original *Terragrunt) *Terragrunt {
 //   - A string containing a summary of all successful actions and their outputs, or an empty string
 //     if there were errors.
 //   - An error that aggregates all encountered errors, or nil if no errors occurred.
-func processActionResults(resultChan chan ActionResult) (string, error) {
+func processActionAsyncResults(resultChan chan ActionResult) (string, error) {
 	// collectors for errors and successful results
 	var collectedActionErrors []error
 	var successfulResults []ActionResult
@@ -565,34 +601,61 @@ func processActionResults(resultChan chan ActionResult) (string, error) {
 		}
 	}
 
-	// If there are any collected errors, return them as a joined error
-	if len(collectedActionErrors) > 0 {
-		return "", JoinErrors(collectedActionErrors...)
-	}
+	return formatResultsReport(collectedActionErrors, successfulResults)
+}
 
-	// Build the output report for successful actions
-	var outputBuilder strings.Builder
-	outputBuilder.WriteString("All actions passed successfully.\n\nOutput:\n")
-	outputBuilder.WriteString("=====================\n")
+// ProcessActionSyncResults collects results from a slice of synchronously executed actions.
+// It aggregates any errors encountered during the execution and formats a success report
+// by calling the internal formatResultsReport helper function.
+// It takes a slice of ActionResult and returns a formatted string report or a joined error.
+func ProcessActionSyncResults(results []ActionResult) (string, error) {
+	// collectors
+	var collectedActionErrors []error
+	var successfulResults []ActionResult // Collect successful results in order
 
-	// Check if there are successful results to report
-	if len(successfulResults) == 0 {
-		outputBuilder.WriteString("(No successful actions with output)\n")
-	} else {
-		// Append each successful result to the output
-		for _, result := range successfulResults {
-			outputBuilder.WriteString(result.String())
-
-			// Ensure proper formatting with newlines
-			if !strings.HasSuffix(result.String(), "\n") {
-				outputBuilder.WriteString("\n")
-			}
-
-			outputBuilder.WriteString("--------------------\n")
+	// Separate errors and successes from the input slice
+	for _, result := range results {
+		if result.Err != nil {
+			collectedActionErrors = append(collectedActionErrors, result.Err)
+		} else {
+			successfulResults = append(successfulResults, result)
 		}
 	}
 
-	return outputBuilder.String(), nil
+	// Delegate processing and formatting to the helper function
+	return formatResultsReport(collectedActionErrors, successfulResults)
+}
+
+// formatResultsReport takes collected errors and successful results, aggregates errors,
+// and formats a success report. This is the core reusable logic.
+func formatResultsReport(collectedActionErrors []error, successfulResults []ActionResult) (string, error) {
+	// Handling errors first.
+	if len(collectedActionErrors) > 0 {
+		// Use JoinErrors from err.go (assuming it's in the same package or imported)
+		return "", JoinErrors(collectedActionErrors...)
+	}
+
+	// Handling, and showing outputs
+	var outputBuilder strings.Builder
+	outputBuilder.WriteString("All actions passed successfully.\n\nOutput:\n") // Simplified success message
+	outputBuilder.WriteString("=====================\n")
+
+	// Display successful outputs in the order they were collected
+	if len(successfulResults) == 0 {
+		outputBuilder.WriteString("(No successful actions with output)\n")
+	} else {
+		for _, result := range successfulResults {
+			// Use the existing String() method or format directly
+			outputBuilder.WriteString(result.String()) // Assumes ActionResult has a useful String() method
+			// Ensure a newline after each result's output if not already present by String()
+			if !strings.HasSuffix(result.String(), "\n") {
+				outputBuilder.WriteString("\n")
+			}
+			outputBuilder.WriteString("--------------------\n") // Separator
+		}
+	}
+
+	return outputBuilder.String(), nil // Return combined stdout and nil error
 }
 
 // String returns a formatted string representation of the ActionResult.
