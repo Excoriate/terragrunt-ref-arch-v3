@@ -4,6 +4,8 @@ import (
 	"context"
 	"dagger/terragrunt/internal/dagger"
 	"fmt"
+	"sort"
+	"strings"
 )
 
 // ActionResult represents the result of a Continuous Integration (CI) action.
@@ -492,4 +494,86 @@ func cloneTerragrunt(original *Terragrunt) *Terragrunt {
 		Ctr: original.Ctr,
 		Src: original.Src,
 	}
+}
+
+// processActionResults collects results from concurrent actions, aggregates errors,
+// and formats a success report.
+// It takes a channel of ActionResult and returns a formatted string report or a joined error.
+func processActionResults(resultChan chan ActionResult) (string, error) {
+	// collectors
+	var collectedActionErrors []error
+	// Here the key defined is "unit.command"
+	successfulOutputs := make(map[string]string)
+
+	for result := range resultChan {
+		if result.Err != nil {
+			collectedActionErrors = append(collectedActionErrors, result.Err)
+		} else {
+			successfulOutputs[result.Unit] = result.Output
+		}
+	}
+
+	// Handling, and showing errors.
+	if len(collectedActionErrors) > 0 {
+		// Use JoinErrors from err.go (assuming it's in the same package or imported)
+		return "", JoinErrors(collectedActionErrors...)
+	}
+
+	// Handling, and showing outputs
+	var outputBuilder strings.Builder
+	outputBuilder.WriteString("All actions passed successfully.\n\nOutput per unit:\n") // Generic success message
+	outputBuilder.WriteString("=====================\n")
+
+	// Group outputs by unit
+	unitOutputs := make(map[string]map[string]string)
+	for key, output := range successfulOutputs {
+		parts := strings.Split(key, ".")
+		if len(parts) == 2 {
+			unit, command := parts[0], parts[1]
+			if _, ok := unitOutputs[unit]; !ok {
+				unitOutputs[unit] = make(map[string]string)
+			}
+			unitOutputs[unit][command] = output
+		} else {
+			// Handle potential malformed keys if necessary, or log a warning
+			fmt.Printf("Warning: Malformed result key encountered: %s\n", key)
+		}
+	}
+
+	// Sort units for consistent output order
+	sortedUnits := make([]string, 0, len(unitOutputs))
+	for unit := range unitOutputs {
+		sortedUnits = append(sortedUnits, unit)
+	}
+	sort.Strings(sortedUnits)
+
+	// Display outputs by unit and command
+	for _, unit := range sortedUnits {
+		outputBuilder.WriteString(fmt.Sprintf("--- Unit: %s ---\n", unit))
+
+		// Sort commands for consistent output order
+		commands := make([]string, 0, len(unitOutputs[unit]))
+		for cmd := range unitOutputs[unit] {
+			commands = append(commands, cmd)
+		}
+		sort.Strings(commands)
+
+		for _, cmd := range commands {
+			outputBuilder.WriteString(fmt.Sprintf("Command: %s\n", cmd))
+			stdout := unitOutputs[unit][cmd]
+			if stdout == "" {
+				outputBuilder.WriteString("(No standard output)\n")
+			} else {
+				outputBuilder.WriteString(stdout)
+				// Ensure a newline after each command's output if not already present
+				if !strings.HasSuffix(stdout, "\n") {
+					outputBuilder.WriteString("\n")
+				}
+			}
+			outputBuilder.WriteString("\n") // Add a blank line between commands
+		}
+		outputBuilder.WriteString("--------------------\n")
+	}
+
+	return outputBuilder.String(), nil // Return combined stdout and nil error
 }
