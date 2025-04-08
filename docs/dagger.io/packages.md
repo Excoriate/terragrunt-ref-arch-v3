@@ -93,12 +93,12 @@ composer require phpunit/phpunit
 
 > **Note:**
 > Dagger modules installed as packages via Composer are not registered with Dagger.
-> 
+>
 > You can access its code, like any other PHP package, but this is not the indended use-case of a Dagger module.
 > This may lead to unexpected behaviour.
-> 
+>
 > Use Composer for standard third-party packages.
-> 
+>
 > Use Dagger to [install Dagger modules](./module-dependencies.md)
 
 ### Java

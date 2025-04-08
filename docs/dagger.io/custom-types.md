@@ -204,7 +204,7 @@ TypeScript has multiple ways to support complex data types. Use a `class` when y
 > - Github
 > - GithubAccount
 > - GithubOrganization
-> 
+>
 > This is to prevent possible naming conflicts when loading multiple modules,
 > which is reflected in code generation (for example, when using this module in
 > another one as a dependency).

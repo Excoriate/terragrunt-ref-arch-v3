@@ -626,7 +626,7 @@ class MyModule:
 
 > **Note:**
 > There's no `float` type keyword in TypeScript because the type keyword `number` already supports floating point numbers.
-> 
+>
 > To declare a `float` argument on the function signature, import `float` from `@dagger.io/dagger` and use it as an argument's type.
 > The imported `float` type is a `number` underneath, so you can use it as you would use a `number` inside your function.
 
@@ -786,7 +786,7 @@ class MyModule {
 ### PHP
 > **Note:**
 > Lists must have their subtype specified by adding the `#[ListOfType]` attribute to the relevant function argument.
-> 
+>
 > The PHP SDK needs the typing information at runtime to correctly report to the API.
 
 ```php
@@ -1932,11 +1932,11 @@ class MyModule {
 ### PHP
 > **Note:**
 > The definition of optional varies between Dagger and PHP.
-> 
+>
 > An optional argument to PHP is one that has a default value.
-> 
+>
 > An optional argument to Dagger can be omitted entirely. It is truly optional.
-> 
+>
 > To specify a function argument as optional, simply make it nullable. When using the Dagger CLI, if the argument is omitted; the PHP SDK will treat this as receiving the value `null`.
 
 ```php
@@ -1974,7 +1974,7 @@ class MyModule
 ### Java
 > **Note:**
 > Because of the usage of `Optional`, primitive types can not be marked as optional. You have to use the boxed types like `Integer` or `Boolean`.
-> 
+>
 > When an argument is not set as optional, Dagger will ensure the value is not `null` by adding a call to `Objects.requireNonNull` against the argument.
 
 ```java
@@ -2149,7 +2149,7 @@ class MyModule
 ### Java
 > **Note:**
 > The default value provided must be a valid JSON string representation of the type.
-> 
+>
 > For instance if the argument is of type `Integer` and the default value is `123`, then the annotation must be `@Default("123")`.
 > If the argument is of type `String` and the default value is `world`, then the annotation should be `@Default("\"world\"")`.
 > In order to simplify this very specific case, if the argument is of type `String` and the value doesn't start with an escaped quote,

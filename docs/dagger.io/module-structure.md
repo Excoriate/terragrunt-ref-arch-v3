@@ -100,7 +100,7 @@ class MyModule:
 
 > **Important:**
 > Dagger expects that a Python Dagger module is structured like a [library](https://docs.astral.sh/uv/concepts/projects/#libraries), so that the SDK is able to load the code with an import, but it's up to the Python [build system](https://docs.astral.sh/uv/concepts/projects/#build-systems) to know where files are located in order to build and install the Python package correctly.
-> 
+>
 > This affords a lot of flexibility in how Dagger Python modules can be structured, and which tools are supported.
 
 The default project template follows known conventions for structuring a Python library (src layout, package name matching project name), which allows Python [build backends](https://www.python.org/dev/peps/pep-0517/) to automatically recognize where the files are.
@@ -115,7 +115,7 @@ However, it's possible to change the project's name and file structure with a bi
 
 > **Tip:** SINGLE FILE MODULE
 > Here is an example of moving all the code into a single `main.py` [module](https://docs.python.org/3/tutorial/modules.html), resulting in the following structure:
-> 
+>
 > ```
 > .
 > ├── dagger.json
@@ -123,64 +123,64 @@ However, it's possible to change the project's name and file structure with a bi
 > ├── pyproject.toml
 > └── uv.lock
 > ```
-> 
+>
 > And corresponding `pyproject.toml` configuration:
-> 
+>
 > ### hatchling
-> 
+>
 > ```toml
 > [build-system]
 > requires = ["hatchling>=0.15.0"]
 > build-backend = "hatchling.build"
-> 
+>
 > [tool.hatch.build.targets.wheel]
 > packages = ["main.py"]
 > ```
-> 
+>
 > ### poetry-core
-> 
+>
 > ```toml
 > [build-system]
 > requires = ["poetry-core>=1.0.0"]
 > build-backend = "poetry.core.masonry.api"
 > ```
-> 
+>
 > ### setuptools
-> 
+>
 > ```toml
 > [build-system]
 > requires = ["setuptools", "wheel"]
 > build-backend = "setuptools.build_meta"
-> 
+>
 > [tool.setuptools]
 > py-modules = ["main"]
 > ```
 
 > **Tip:** CUSTOMIZE IMPORT PACKAGE
 > The Python SDK looks for the *main object* of the Dagger module in the Python [import package that is named after the distribution package name](https://packaging.python.org/en/latest/discussions/distribution-package-vs-import-package/#how-do-distribution-package-names-and-import-package-names-compare) (in particular, using underscores `_` as a word separator).
-> 
+>
 > If they are different, you must explicitly tell the Python SDK where the main object needs to be imported from, using the following entry point configuration in `pyproject.toml`:
-> 
+>
 > ```toml
 > [project.entry-points."dagger.mod"]
 > main_object = "<import package>:<main object>"
 > ```
-> 
+>
 > For example, for a Dagger module named `my-module`:
-> 
+>
 > - Main object: `MyModule` (required to be the name in `dagger.json`, in PascalCase)
 > - Default distribution package: `my-module` (in `pyproject.toml`; can be changed)
 > - Default import package: `src/my_module` (normalized after distribution package name; can be changed)
-> 
+>
 > Then, the default `main_object` entry point that the Python SDK looks for is `my_module:MyModule`, with a fallback to `main:MyModule` for backwards compatibility.
-> 
+>
 > Thus, if you have the following configuration:
-> 
+>
 > ```toml
 > [project.entry-points."dagger.mod"]
 > main_object = "my_module.main:MyModule"
 > ```
-> 
+>
 > Then the import in `__init__.py` is no longer needed since Dagger knows to import from `my_module.main` directly.
 
 ### TypeScript
@@ -265,7 +265,7 @@ import io.dagger.module.annotation.Module;
 > **Note:**
 > By default, the description will be read from the JavaDoc documentation of the package, class or function. To define a different
 > description, use the `description` field in each `@Module`, `@Object` or `@Function` annotation.
-> 
+>
 > ```java
 > /**
 >  * Returns the build container
@@ -278,10 +278,10 @@ import io.dagger.module.annotation.Module;
 >     //...
 > }
 > ```
-> 
+>
 > ```console
 > $ dagger functions
-> 
+>
 > Name    Description
 > build   Build container
 > ```
@@ -345,16 +345,16 @@ This will instruct Dagger to use the `python:3.11-slim` base image instead.
 Pinning the interpreter version can be useful to prevent an automatic upgrade from a future version of Dagger, or to select a newer version.
 
 > **Tip:**
-> 
+>
 > For more advanced needs, a different base image can be used by adding the following to your `pyproject.toml`:
-> 
+>
 > ```toml
 > [tool.dagger]
 > base-image = "acme/python:3.11"
 > ```
-> 
+>
 > This can be useful to add a few requirements to the module's execution environment such as system packages like `git`, or to add necessary environment variables, for example. However, don't deviate from the default base image too much or it may break in a future version of Dagger.
-> 
+>
 > ⚠️ **Override at own risk!**
 
 ### TypeScript
@@ -433,24 +433,24 @@ With the `uv.lock` file, Dagger uses uv's [project management](https://docs.astr
 
 > **Info:**
 > Dagger also supports pinning dependencies with a `pip-tools` compatible `requirements.lock` file in order to support the use of other project managers like Poetry or Hatch locally (when developing).
-> 
+>
 > In this case, Dagger installs dependencies with:
-> 
+>
 > ```shell
 > # executed by the runtime
 > uv pip install -r requirements.lock -e ./sdk -e .
 > ```
-> 
+>
 > Notice that the `./sdk` and `.` packages don't need to be in the `requirements.lock` file, only the third party dependencies.
-> 
+>
 > This means module developers can use any tool they want to manage their virtual environment and install dependencies, but if third-party dependencies aren't pinned in a `requirements.lock` file, the developers may get different versions between the Dagger execution environment and their own local environment.
-> 
+>
 > For example, Poetry has its own `poetry.lock` which Dagger doesn't recognize, but it can be exported as a `requirements.lock` file with:
-> 
+>
 > ```shell
 > poetry export --without main -o requirements.lock
 > ```
-> 
+>
 > It will have to be manually kept in sync, though.
 
 ### TypeScript

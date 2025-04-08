@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -23,7 +25,8 @@ const (
 	defaulttRefArchLayer = "dni"
 	defaulttRefArchUnit  = "dni_generator"
 	// Default for AWS
-	defaultAWSRegion = "us-east-1"
+	defaultAWSRegion              = "us-east-1"
+	defaultAWSOidcTokenSecretName = "AWS_OIDC_TOKEN"
 	// Configuration
 	configRefArchRootPath          = "infra/terragrunt"
 	configterraformPluginCachePath = "/root/.terraform.d/plugin-cache"
@@ -73,11 +76,6 @@ func New(
 	// +ignore=["*", "!**/*.hcl", "!**/*.tfvars", "!**/.git/**", "!**/*.tfvars.json", "!**/*.tf", "!*.env", "!*.envrc", "!*.envrc"]
 	srcDir *dagger.Directory,
 
-	// Secrets are the secrets that will be used to run the Terragrunt commands.
-	//
-	// +optional
-	secrets []*dagger.Secret,
-
 	// EnvVars are the environment variables that will be used to run the Terragrunt commands.
 	//
 	// +optional
@@ -88,7 +86,7 @@ func New(
 		mod, enVarError := mod.WithEnvVars(envVars)
 
 		if enVarError != nil {
-			return nil, enVarError
+			return nil, WrapErrorf(enVarError, "failed to initialise dagger module with environment variables")
 		}
 
 		mod.WithSRC(ctx, defaultMntPath, srcDir, false)
@@ -101,12 +99,11 @@ func New(
 	if imageURL != "" {
 		mod := &Terragrunt{}
 		mod.Ctr = dag.Container().From(imageURL)
-		mod.WithSecrets(ctx, secrets)
 		mod.WithSRC(ctx, defaultMntPath, srcDir, false)
 		mod, enVarError := mod.WithEnvVars(envVars)
 
 		if enVarError != nil {
-			return nil, enVarError
+			return nil, WrapErrorf(enVarError, "failed to initialise dagger module with environment variables")
 		}
 
 		mod = mod.CommonSetup(tfVersion, tgVersion)
@@ -129,7 +126,6 @@ func New(
 		Container().
 		From(defaultImageWithTag)
 
-	mod.WithSecrets(ctx, secrets)
 	mod.WithSRC(ctx, defaultMntPath, srcDir, false)
 	mod, enVarError := mod.WithEnvVars(envVars)
 
@@ -290,6 +286,49 @@ func (m *Terragrunt) WithTerragruntProvidersCacheServerEnabled() *Terragrunt {
 	return m
 }
 
+// WithTerragruntProvidersCacheServerDisabled disables the Terragrunt providers cache server.
+//
+// This method removes the environment variable TG_PROVIDER_CACHE from the container.
+//
+// Returns:
+//   - The updated Terragrunt instance with the providers cache server disabled
+func (m *Terragrunt) WithTerragruntProvidersCacheServerDisabled() *Terragrunt {
+	m.Ctr = m.Ctr.
+		WithoutEnvVariable("TG_PROVIDER_CACHE").
+		WithEnvVariable("TG_PROVIDER_CACHE", "0")
+
+	return m
+}
+
+// WithRegistriesToCacheProvidersFrom adds extra registries to cache providers from.
+//
+// This function appends the provided registries to the default list of registries in the Terragrunt configuration.
+// By default, the Terragrunt provider's cache only caches registry.terraform.io and registry.opentofu.org.
+//
+// Parameters:
+//   - registries: A slice of strings representing the registries to cache providers from.
+//
+// Returns:
+//   - *Terragrunt: The updated Terragrunt instance with the extra registries to cache providers from.
+func (m *Terragrunt) WithRegistriesToCacheProvidersFrom(
+	// registries is a slice of strings representing the registries to cache providers from.
+	registries []string,
+) *Terragrunt {
+	defaultRegistries := []string{
+		"registry.terraform.io",
+		"registry.opentofu.org",
+	}
+
+	registries = append(defaultRegistries, registries...)
+	registryNames := strings.Join(registries, ",")
+
+	m.Ctr = m.Ctr.
+		WithoutEnvVariable("TERRAGRUNT_PROVIDER_CACHE_REGISTRY_NAMES").
+		WithEnvVariable("TERRAGRUNT_PROVIDER_CACHE_REGISTRY_NAMES", registryNames)
+
+	return m
+}
+
 // WithCacheBuster enables the cache buster for the container.
 //
 // This method sets the environment variable DAGGER_APT_CACHE_BUSTER to a unique value based on the current time.
@@ -350,20 +389,14 @@ func (m *Terragrunt) WithSecrets(ctx context.Context, secrets []*dagger.Secret) 
 //   - The updated Terragrunt instance with environment variables set
 //   - An error if any environment variable is incorrectly formatted
 func (m *Terragrunt) WithEnvVars(envVars []string) (*Terragrunt, error) {
-	if len(envVars) > 0 {
-		for _, envVar := range envVars {
-			trimmedEnvVar := strings.TrimSpace(envVar)
-			if !strings.Contains(trimmedEnvVar, "=") {
-				return nil, fmt.Errorf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar)
-			}
+	envVarsDagger, err := getEnvVarsDaggerFromSlice(envVars)
 
-			parts := strings.Split(trimmedEnvVar, "=")
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar)
-			}
+	if err != nil {
+		return nil, err
+	}
 
-			m.Ctr = m.Ctr.WithEnvVariable(parts[0], parts[1])
-		}
+	for _, envVar := range envVarsDagger {
+		m.Ctr = m.Ctr.WithEnvVariable(envVar.Key, envVar.Value)
 	}
 
 	return m, nil
@@ -513,7 +546,7 @@ func (m *Terragrunt) WithSSHAuthSocket(
 //
 // Returns:
 //   - *Terragrunt: The updated Terragrunt instance with AWS credentials and region set
-func (m *Terragrunt) WithAWSCredentials(
+func (m *Terragrunt) WithAWSKeys(
 	// ctx is the context for the Dagger container.
 	// +optional
 	ctx context.Context,
@@ -532,7 +565,50 @@ func (m *Terragrunt) WithAWSCredentials(
 		WithSecretVariable("AWS_ACCESS_KEY_ID", awsAccessKeyID).
 		WithSecretVariable("AWS_SECRET_ACCESS_KEY", awsSecretAccessKey)
 
-	// m = m.WithSecrets(ctx, []*dagger.Secret{awsAccessKeyID, awsSecretAccessKey})
+	return m
+}
+
+// WithAWSOIDC sets the AWS OIDC credentials in the container.
+//
+// This method sets the AWS OIDC credentials in the container, making them available as environment variables.
+// It also mounts the AWS OIDC credentials as secrets into the container.
+func (m *Terragrunt) WithAWSOIDC(
+	// roleARN is the ARN of the IAM role to assume.
+	roleARN string,
+	// oidcToken is the Dagger Secret containing the OIDC JWT token from GitLab.
+	oidcToken *dagger.Secret,
+	// oidcTokenName is the name of the secret containing the OIDC JWT token from GitLab.
+	// +optional
+	oidcTokenName string,
+	// awsRegion is the AWS region.
+	// +optional
+	awsRegion string,
+	// awsRoleSessionName is an optional name for the assumed role session.
+	// +optional
+	awsRoleSessionName string,
+) *Terragrunt {
+	awsRegion = getDefaultAWSRegionIfNotSet(awsRegion)
+
+	if oidcTokenName == "" {
+		oidcTokenName = defaultAWSOidcTokenSecretName
+	}
+
+	if awsRoleSessionName == "" {
+		awsRoleSessionName = fmt.Sprintf("terragrunt-dagger-%s", uuid.New().String())
+	}
+
+	oidcTokenPath := "run/secrets/" + oidcTokenName
+
+	m.Ctr = m.Ctr.
+		WithEnvVariable("AWS_REGION", awsRegion).
+		WithEnvVariable("AWS_ROLE_ARN", roleARN).
+		WithEnvVariable("AWS_ROLE_SESSION_NAME", awsRoleSessionName).
+		WithEnvVariable("AWS_WEB_IDENTITY_TOKEN_FILE", oidcTokenPath).
+		// cleaning —if set— aws keys.
+		WithoutEnvVariable("AWS_ACCESS_KEY_ID").
+		WithoutEnvVariable("AWS_SECRET_ACCESS_KEY").
+		WithoutEnvVariable("AWS_SESSION_TOKEN").
+		WithSecretVariable(oidcTokenName, oidcToken)
 
 	return m
 }
@@ -823,7 +899,7 @@ func getDefaultBinaryIfANotSet(binary string) string {
 	return binary
 }
 
-func getTerragruntUnitPath(env, layer, unit string) string {
+func getTerragruntExecutionPath(env, layer, unit string) string {
 	if env == "" {
 		env = defaultRefArchEnv
 	}
@@ -837,4 +913,35 @@ func getTerragruntUnitPath(env, layer, unit string) string {
 	}
 
 	return filepath.Join(configRefArchRootPath, env, layer, unit)
+}
+
+type EnvVarDagger struct {
+	Key   string
+	Value string
+}
+
+func getEnvVarsDaggerFromSlice(envVars []string) ([]EnvVarDagger, error) {
+	envVarsDagger := []EnvVarDagger{}
+	for _, envVar := range envVars {
+		trimmedEnvVar := strings.TrimSpace(envVar)
+		if trimmedEnvVar == "" {
+			return nil, NewError("environment variable cannot be empty")
+		}
+
+		if !strings.Contains(trimmedEnvVar, "=") {
+			return nil, NewError(fmt.Sprintf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar))
+		}
+
+		parts := strings.Split(trimmedEnvVar, "=")
+		if len(parts) != 2 {
+			return nil, NewError(fmt.Sprintf("environment variable must be in the format ENVARKEY=VALUE: %s", trimmedEnvVar))
+		}
+
+		envVarsDagger = append(envVarsDagger, EnvVarDagger{
+			Key:   parts[0],
+			Value: parts[1],
+		})
+	}
+
+	return envVarsDagger, nil
 }

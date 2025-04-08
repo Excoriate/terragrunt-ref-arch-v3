@@ -133,7 +133,7 @@ Any object module that implements the interface method can be passed as an argum
 that uses the interface.
 
 Dagger automatically detects if an object coming from the module itself or one of its dependencies implements
-an interface defined in the module or its dependencies. 
+an interface defined in the module or its dependencies.
 If so, it will add new conversion functions to the object that implement the interface
 so it can be passed as argument.
 

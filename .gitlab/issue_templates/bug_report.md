@@ -1,6 +1,6 @@
 <!-- Title suggestion: [Bug]: Brief description -->
 
-/title [Bug]: 
+/title [Bug]:
 
 ## Summary
 
@@ -27,9 +27,9 @@ Select the primary component experiencing the issue:
 
 ## Steps to Reproduce
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected vs Actual Behavior
 
@@ -81,4 +81,4 @@ Select the primary component experiencing the issue:
 (If you have any ideas for how to solve the issue, add them here)
 
 /label ~bug ~needs-investigation
-/assign me 
+/assign me

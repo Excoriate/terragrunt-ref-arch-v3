@@ -1,6 +1,6 @@
 <!-- Title suggestion: [Component]: Brief description -->
 
-/title [Component]: 
+/title [Component]:
 
 ## 🏗️ Terragrunt Reference Architecture MR
 
@@ -48,4 +48,4 @@ Select all that apply:
 
 /label ~feature
 /assign me
-/milestone %"Next Release" 
+/milestone %"Next Release"

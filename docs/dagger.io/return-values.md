@@ -10,7 +10,7 @@ This opens powerful applications to Dagger Functions. For example, a Dagger Func
 
 > **Note:**
 > If a function doesn't have a return type annotation, it'll be translated to the [dagger.Void][void-type] type in the API.
-> 
+>
 > [void-type]: https://docs.dagger.io/api/reference/#definition-Void
 
 ## String return values
@@ -304,7 +304,7 @@ class MyModule:
 
 > **Note:**
 > There's no `float` type keyword in TypeScript because the type keyword `number` already supports floating point numbers.
-> 
+>
 > To declare a `float` return type on the function signature, import `float` from `@dagger.io/dagger` and use it as return type.
 > The imported `float` type is a `number` underneath, so you can return it as you would return a regular type `number`.
 
