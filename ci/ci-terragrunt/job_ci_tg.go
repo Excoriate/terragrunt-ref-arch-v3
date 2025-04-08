@@ -83,80 +83,82 @@ func (m *Terragrunt) JobTerragruntUnitsStaticCheck(
 		"age_generator",
 	}
 
-	// actions to run on this job
-	actions := []ActionCmd{
-		{
-			Command: "hclfmt",
-			Args:    []string{"--check", "--diff"},
-		},
-		{
-			Command: "terragrunt-info",
-			Args:    []string{},
-		},
-		{
-			Command: "validate-inputs",
-			Args:    []string{},
-		},
-		{
-			Command: "hclvalidate",
-			Args:    []string{"--show-config-path"},
-		},
+	var wg sync.WaitGroup
+	resultChan := make(chan JobResult, len(units))
+
+	if loadDotEnvFile {
+		mWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
+
+		if err != nil {
+			return "", WrapErrorf(err, "failed to load .env file")
+		}
+
+		m = mWithDotEnvLoaded
 	}
 
-	var wg sync.WaitGroup
-	// Buffered channel, so we can collect the results safely.
-	resultChan := make(chan ActionResult, len(units)*len(actions))
+	// Connect to AWS, with credentials or OIDC.
+	m = m.WithAWSKeys(ctx, awsAccessKeyID, awsSecretAccessKey, awsRegion)
+
+	if noCache {
+		m = m.WithCacheBuster()
+	}
+
+	if len(envVars) > 0 {
+		mWithEnvVars, err := m.WithEnvVars(envVars)
+
+		if err != nil {
+			return "", WrapErrorf(err, "failed to set environment variables")
+		}
+
+		m = mWithEnvVars
+	}
 
 	// Run each unit check concurrently
 	for _, unit := range units {
-		for _, action := range actions {
-			currentUnit := unit
-			currentAction := action
+		currentUnit := unit
 
-			wg.Add(1)
+		// mount path dynamically calculated per unit.
+		tgUnitPath := getTerragruntExecutionPath(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
+		tgUnitMntPath := fmt.Sprintf("%s/%s", defaultMntPath, tgUnitPath)
 
-			go func() {
-				defer wg.Done()
-				var finalErr error
-				var finalOutput string
+		// Global configuration, let's start with the source code and the .env file.
+		mWithSrc, err := m.WithSRC(ctx, tgUnitMntPath, m.Src)
 
-				// Create a clone of the Terragrunt struct to avoid concurrency issues
-				terragruntClone := cloneTerragrunt(m)
-
-				// Builder
-				actionBuilder := terragruntClone.NewAction(currentAction.Command)
-				actionBuilder.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
-				actionBuilder.WithSource(terragruntClone.Src)
-				actionBuilder.ConnectToAWSWithCredentials(awsAccessKeyID, awsSecretAccessKey, awsRegion)
-				// TODO: Up to you ;)
-				// actionBuilder.ConnectToAWSWithOIDC(awsRoleArn, awsOidcToken, awsRegion, awsRoleSessionName)
-				actionBuilder.WithNoCache()
-				actionBuilder.WithArgs(currentAction.Args...)
-				actionBuilder.WithLoadDotEnvFile()
-				actionBuilder.WithEnvVars(envVars)
-
-				// Execute
-				compiledCtr, buildErr := actionBuilder.Execute(ctx)
-				if buildErr != nil {
-					finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
-				} else {
-					// get the stdout of the action
-					stdOut, stdOutErr := compiledCtr.Stdout(ctx)
-					if stdOutErr != nil {
-						finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
-					} else {
-						finalOutput = stdOut
-					}
-				}
-
-				// Collect results
-				resultChan <- ActionResult{
-					WorkDir: fmt.Sprintf("%s.%s", currentUnit, currentAction.Command),
-					Output:  finalOutput,
-					Err:     finalErr,
-				}
-			}()
+		if err != nil {
+			return "", WrapErrorf(err, "failed to set source code for unit %s", currentUnit)
 		}
+
+		m = mWithSrc
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			var finalErr error
+			var finalOutput string
+
+			// Execution runtime, just a fancy nawe for the container's state per execution.
+			execCtr := m.Ctr.
+				WithExec([]string{"terragrunt", "init", "--working-dir", tgUnitMntPath}).
+				WithExec([]string{"terragrunt", "terragrunt-info", "--working-dir", tgUnitMntPath}).
+				WithExec([]string{"terragrunt", "hclfmt", "--check", "--diff", "--working-dir", tgUnitMntPath}).
+				WithExec([]string{"terragrunt", "validate-inputs", "--working-dir", tgUnitMntPath}).
+				WithExec([]string{"terragrunt", "hclvalidate", "--show-config-path", "--working-dir", tgUnitMntPath})
+
+			stdout, err := execCtr.Stdout(ctx)
+			if err != nil {
+				finalErr = WrapErrorf(err, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
+			} else {
+				finalOutput = stdout
+			}
+
+			// Collect results
+			resultChan <- JobResult{
+				WorkDir: tgUnitPath,
+				Output:  finalOutput,
+				Err:     finalErr,
+			}
+		}()
 	}
 
 	wg.Wait()
@@ -242,68 +244,79 @@ func (m *Terragrunt) JobTerragruntUnitsPlan(
 		"age_generator",
 	}
 
-	// actions to run on this job
-	actions := []ActionCmd{
-		{
-			Command: "plan",
-			Args:    []string{},
-		},
+	var wg sync.WaitGroup
+	resultChan := make(chan JobResult, len(units))
+
+	if loadDotEnvFile {
+		mWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
+
+		if err != nil {
+			return "", WrapErrorf(err, "failed to load .env file")
+		}
+
+		m = mWithDotEnvLoaded
 	}
 
-	var wg sync.WaitGroup
-	// Buffered channel, so we can collect the results safely.
-	resultChan := make(chan ActionResult, len(units)*len(actions))
+	// Connect to AWS, with credentials or OIDC.
+	m = m.WithAWSKeys(ctx, awsAccessKeyID, awsSecretAccessKey, awsRegion)
+
+	if noCache {
+		m = m.WithCacheBuster()
+	}
+
+	if len(envVars) > 0 {
+		mWithEnvVars, err := m.WithEnvVars(envVars)
+
+		if err != nil {
+			return "", WrapErrorf(err, "failed to set environment variables")
+		}
+
+		m = mWithEnvVars
+	}
 
 	// Run each unit check concurrently
 	for _, unit := range units {
-		for _, action := range actions {
-			currentUnit := unit
-			currentAction := action
+		currentUnit := unit
 
-			wg.Add(1)
+		// mount path dynamically calculated per unit.
+		tgUnitPath := getTerragruntExecutionPath(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
+		tgUnitMntPath := fmt.Sprintf("%s/%s", defaultMntPath, tgUnitPath)
 
-			go func() {
-				defer wg.Done()
-				var finalErr error
-				var finalOutput string
+		// Global configuration, let's start with the source code and the .env file.
+		mWithSrc, err := m.WithSRC(ctx, tgUnitMntPath, m.Src)
 
-				// Create a clone of the Terragrunt struct to avoid concurrency issues
-				terragruntClone := cloneTerragrunt(m)
-
-				// Builder
-				actionBuilder := terragruntClone.NewAction(currentAction.Command)
-				actionBuilder.ForTgUnit(defaultRefArchEnv, defaulttRefArchLayer, currentUnit)
-				actionBuilder.WithSource(terragruntClone.Src)
-				actionBuilder.ConnectToAWSWithCredentials(awsAccessKeyID, awsSecretAccessKey, awsRegion)
-				// TODO: Up to you ;)
-				// actionBuilder.ConnectToAWSWithOIDC(awsRoleArn, awsOidcToken, awsRegion, awsRoleSessionName)
-				actionBuilder.WithNoCache()
-				actionBuilder.WithArgs(currentAction.Args...)
-				actionBuilder.WithLoadDotEnvFile()
-				actionBuilder.WithEnvVars(envVars)
-
-				// Execute
-				compiledCtr, buildErr := actionBuilder.Execute(ctx)
-				if buildErr != nil {
-					finalErr = WrapErrorf(buildErr, "failed to execute the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
-				} else {
-					// get the stdout of the action
-					stdOut, stdOutErr := compiledCtr.Stdout(ctx)
-					if stdOutErr != nil {
-						finalErr = WrapErrorf(stdOutErr, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
-					} else {
-						finalOutput = stdOut
-					}
-				}
-
-				// Collect results
-				resultChan <- ActionResult{
-					WorkDir: fmt.Sprintf("%s.%s", currentUnit, currentAction.Command),
-					Output:  finalOutput,
-					Err:     finalErr,
-				}
-			}()
+		if err != nil {
+			return "", WrapErrorf(err, "failed to set source code for unit %s", currentUnit)
 		}
+
+		m = mWithSrc
+
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			var finalErr error
+			var finalOutput string
+
+			// Execution runtime, just a fancy nawe for the container's state per execution.
+			execCtr := m.Ctr.
+				WithExec([]string{"terragrunt", "init", "--working-dir", tgUnitMntPath}).
+				WithExec([]string{"terragrunt", "plan", "--working-dir", tgUnitMntPath})
+
+			stdout, err := execCtr.Stdout(ctx)
+			if err != nil {
+				finalErr = WrapErrorf(err, "failed to get the stdout of the terragrunt action for the following environment: %s, layer: %s, unit: %s", currentUnit, defaulttRefArchLayer, currentUnit)
+			} else {
+				finalOutput = stdout
+			}
+
+			// Collect results
+			resultChan <- JobResult{
+				WorkDir: tgUnitPath,
+				Output:  finalOutput,
+				Err:     finalErr,
+			}
+		}()
 	}
 
 	wg.Wait()
