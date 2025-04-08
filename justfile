@@ -160,3 +160,7 @@ ci-job-tfmodules-static-check:
     @dagger functions
     @echo "🔍 Running the function"
     @dagger call job-terraform-modules-static-check
+
+dev:
+    @echo "🌿 Starting Nix Development Shell for Terraform Registry Module Template 🏷️"
+    @nix develop . --impure --extra-experimental-features nix-command --extra-experimental-features flakes
