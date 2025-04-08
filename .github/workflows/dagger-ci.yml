@@ -1,10 +1,11 @@
+---
 name: Dagger CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -40,10 +41,7 @@ jobs:
           verb: "call"
           module: ci/ci-terragrunt # Specifies the directory of the Dagger module
           args: >
-            job-terragrunt-units-static-check
-            --no-cache
-            --aws-access-key-id=env://AWS_ACCESS_KEY_ID
-            --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
+            job-terragrunt-units-static-check --no-cache --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
             --env-vars="TG_NON_INTERACTIVE=env://TG_NON_INTERACTIVE,TG_LOG_LEVEL=env://TG_LOG_LEVEL,TG_STACK_REMOTE_STATE_BUCKET_NAME=env://TG_STACK_REMOTE_STATE_BUCKET_NAME,TG_STACK_REMOTE_STATE_LOCK_TABLE=env://TG_STACK_REMOTE_STATE_LOCK_TABLE,DEFAULT_REGION=env://DEFAULT_REGION"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -69,10 +67,7 @@ jobs:
           verb: "call"
           module: ci/ci-terragrunt # Specifies the directory of the Dagger module
           args: >
-            job-terragrunt-units-plan
-            --no-cache
-            --aws-access-key-id=env://AWS_ACCESS_KEY_ID
-            --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
+            job-terragrunt-units-plan --no-cache --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
             --env-vars="TG_NON_INTERACTIVE=env://TG_NON_INTERACTIVE,TG_LOG_LEVEL=env://TG_LOG_LEVEL,TG_STACK_REMOTE_STATE_BUCKET_NAME=env://TG_STACK_REMOTE_STATE_BUCKET_NAME,TG_STACK_REMOTE_STATE_LOCK_TABLE=env://TG_STACK_REMOTE_STATE_LOCK_TABLE,DEFAULT_REGION=env://DEFAULT_REGION"
         env:
           # Map GitHub secrets to environment variables for the Dagger function call
@@ -80,8 +75,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           # Add variables from .env needed by the Dagger function or Terragrunt itself
           DEFAULT_REGION: "us-east-1" # Or use secrets.AWS_REGION if available/preferred
-          TG_NON_INTERACTIVE: "true"  # From .env
-          TG_LOG_LEVEL: "info"        # From .env
+          TG_NON_INTERACTIVE: "true" # From .env
+          TG_LOG_LEVEL: "info" # From .env
           TG_STACK_REMOTE_STATE_BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }} # Assumed Secret Name
           TG_STACK_REMOTE_STATE_LOCK_TABLE: ${{ secrets.TF_STATE_LOCK_TABLE }} # Assumed Secret Name
           # AWS_REGION: ${{ secrets.AWS_REGION }} # Example if region is needed
