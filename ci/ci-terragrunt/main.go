@@ -85,13 +85,16 @@ func New(
 	if ctr != nil {
 		mod := &Terragrunt{Ctr: ctr}
 		mod, enVarError := mod.WithEnvVars(envVars)
-
 		if enVarError != nil {
 			return nil, WrapErrorf(enVarError, "failed to initialise dagger module with environment variables")
 		}
 
-		mod.WithSRC(ctx, defaultMntPath, srcDir, false)
+		modWithSRC, modWithSRCError := mod.WithSRC(ctx, defaultMntPath, srcDir)
+		if modWithSRCError != nil {
+			return nil, WrapErrorf(modWithSRCError, "failed to initialise dagger module with source directory")
+		}
 
+		mod = modWithSRC
 		mod = mod.CommonSetup(tfVersion, tgVersion)
 
 		return mod, nil
@@ -100,7 +103,12 @@ func New(
 	if imageURL != "" {
 		mod := &Terragrunt{}
 		mod.Ctr = dag.Container().From(imageURL)
-		mod.WithSRC(ctx, defaultMntPath, srcDir, false)
+		modWithSRC, modWithSRCError := mod.WithSRC(ctx, defaultMntPath, srcDir)
+		if modWithSRCError != nil {
+			return nil, WrapErrorf(modWithSRCError, "failed to initialise dagger module with source directory")
+		}
+
+		mod = modWithSRC
 		mod, enVarError := mod.WithEnvVars(envVars)
 
 		if enVarError != nil {
@@ -127,7 +135,12 @@ func New(
 		Container().
 		From(defaultImageWithTag)
 
-	mod.WithSRC(ctx, defaultMntPath, srcDir, false)
+	modWithSRC, modWithSRCError := mod.WithSRC(ctx, defaultMntPath, srcDir)
+	if modWithSRCError != nil {
+		return nil, WrapErrorf(modWithSRCError, "failed to initialise dagger module with source directory")
+	}
+
+	mod = modWithSRC
 	mod, enVarError := mod.WithEnvVars(envVars)
 
 	if enVarError != nil {
@@ -214,9 +227,7 @@ func (m *Terragrunt) WithSRC(
 	workdir string,
 	// dir is the directory to mount in the container.
 	dir *dagger.Directory,
-	// printPaths is a boolean to print the paths of the mounted directories.
-	// +optional
-	printPaths bool) (*Terragrunt, error) {
+) (*Terragrunt, error) {
 	if workdir == "" {
 		workdir = defaultMntPath
 	} else {
@@ -226,7 +237,7 @@ func (m *Terragrunt) WithSRC(
 	}
 
 	if err := isNonEmptyDaggerDir(ctx, dir); err != nil {
-		return nil, fmt.Errorf("failed to validate the src/ directory passed: %w", err)
+		return nil, WrapErrorf(err, "failed to validate the src/ directory passed")
 	}
 
 	m.Ctr = m.Ctr.
@@ -234,13 +245,6 @@ func (m *Terragrunt) WithSRC(
 		WithMountedDirectory(workdir, dir)
 
 	m.Src = dir
-
-	if printPaths {
-		m.Ctr = m.Ctr.
-			WithExec([]string{"echo", "Workdir: " + workdir}).
-			WithExec([]string{"echo", "Mounted directory: " + workdir}).
-			WithExec([]string{"ls", "-la", workdir})
-	}
 
 	return m, nil
 }
@@ -827,13 +831,9 @@ func (m *Terragrunt) Exec(
 	}
 
 	if binary == "terraform" {
-		_, srcErr := m.WithSRC(ctx, tgExecutionPath, src, printPaths)
-		if srcErr != nil {
-			return nil, WrapErrorf(srcErr, "failed to mount the source directory with workdir %s for binary terraform", tgExecutionPath)
-		}
-	} else {
-		// It's not needed the workdir ir, since with terragrunt I use --working-dir
-		_, _ = m.WithSRC(ctx, "", src, printPaths)
+		m.Ctr = m.Ctr.
+			WithoutWorkdir().
+			WithWorkdir(filepath.Join(defaultMntPath, tgExecutionPath))
 	}
 
 	if envVars != nil {
@@ -847,46 +847,46 @@ func (m *Terragrunt) Exec(
 	}
 
 	if secrets != nil {
-		m.WithSecrets(ctx, secrets)
+		m = m.WithSecrets(ctx, secrets)
 	}
 
 	if tfToken != nil {
-		m.WithTerraformToken(ctx, tfToken)
+		m = m.WithTerraformToken(ctx, tfToken)
 	}
 
 	if ghToken != nil {
-		m.WithGitHubToken(ctx, ghToken)
+		m = m.WithGitHubToken(ctx, ghToken)
 	}
 
 	if glToken != nil {
-		m.WithGitlabToken(ctx, glToken)
+		m = m.WithGitlabToken(ctx, glToken)
 	}
 
 	if gitSshSocket != nil {
-		m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
+		m = m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
 	}
 
 	if tgOptLogLevel != "" {
-		m.WithTerragruntLogLevel(tgOptLogLevel)
+		m = m.WithTerragruntLogLevel(tgOptLogLevel)
 	}
 
 	if tgOptNoColor {
-		m.WithTerragruntNoColor()
+		m = m.WithTerragruntNoColor()
 	}
 
 	if tgOptNonInteractive {
-		m.WithTerragruntNonInteractive()
+		m = m.WithTerragruntNonInteractive()
 	}
 
 	if loadEnvFiles {
 		// At this point, m.Src is either the directory passed, or the one set at the constructor.
-		ctrWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
+		modWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
 
 		if err != nil {
 			return nil, WrapError(err, "failed to load .env files")
 		}
 
-		m = ctrWithDotEnvLoaded
+		m = modWithDotEnvLoaded
 	}
 
 	return m.Ctr.WithExec(tgCmd), nil

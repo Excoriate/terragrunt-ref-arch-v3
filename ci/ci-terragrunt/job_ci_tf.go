@@ -74,6 +74,7 @@ func (m *Terragrunt) JobTerraformModulesStaticCheck(
 			actionBuilder.WithTerraformInsteadOfTerragrunt()
 			actionBuilder.WithNoCache()            // Apply common flags if needed
 			actionBuilder.WithArgs(action.Args...) // Add specific args for the command
+			actionBuilder.WithSourceCodeMounted(m.Src)
 
 			// Execute the action
 			compiledCtr, buildErr := actionBuilder.Execute(ctx)

@@ -95,7 +95,6 @@ func (m *Terragrunt) NewAction(command string) *TerragruntActionBuilder {
 		awsRegion: "eu-central-1",
 		envVars:   []string{},
 		secrets:   []*dagger.Secret{},
-		src:       m.Src, // defaults to parent.Src
 	}
 }
 
@@ -334,6 +333,16 @@ func (b *TerragruntActionBuilder) WithSecret(ctx context.Context, name string, s
 //     for method chaining to further configure the action.
 func (b *TerragruntActionBuilder) WithNoCache() *TerragruntActionBuilder {
 	b.noCache = true
+	return b
+}
+
+// WithSourceCodeMounted sets the source code directory for the Terragrunt action being built.
+// This method allows users to specify a source code directory that will be used
+// during the execution of the Terragrunt command. If the provided source code
+// directory is not nil, it will be assigned to the action builder; otherwise,
+// the existing source code directory will remain unchanged.
+func (b *TerragruntActionBuilder) WithSourceCodeMounted(dir *dagger.Directory) *TerragruntActionBuilder {
+	b.src = dir
 	return b
 }
 
