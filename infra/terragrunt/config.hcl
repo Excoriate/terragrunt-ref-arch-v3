@@ -110,8 +110,8 @@ locals {
   // 🔒 Version Enforcement Configuration
   // To modify the enforced Terraform version:
   // 1. Set TG_STACK_TF_VERSION environment variable, or
-  // 2. Update the default version here (currently "1.9.0")
-  tf_version_enforced_unnormalised = get_env("TG_STACK_TF_VERSION", "1.9.0")
+  // 2. Update the default version here (currently "1.11.3")
+  tf_version_enforced_unnormalised = get_env("TG_STACK_TF_VERSION", "1.11.3")
   tf_version_enforced              = lower(trimspace(local.tf_version_enforced_unnormalised))
 
   // 🎛️ Version File Generation Control
