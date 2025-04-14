@@ -96,6 +96,8 @@ locals {
     local.tf_module_repository,
     local.tf_module_path_default
   )
+
+  echo_tf_module_source = run_cmd("sh", "-c", "echo '🔧  TF Module Source (parent): ${local.tf_module_source} version: ${local.tf_module_version_default}'")
 }
 
 # 🔗 DEPENDENCIES

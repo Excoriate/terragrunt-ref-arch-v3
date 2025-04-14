@@ -36,18 +36,36 @@ hooks-run:
     @./scripts/hooks/pre-commit-init.sh run
 
 # 🧹 Terragrunt and Terraform cache cleanup
-# Removes cached Terragrunt and Terraform directories to ensure clean state
-# Useful for troubleshooting and preventing stale cache-related issues
-tg-clean:
+[working-directory:'infra/terragrunt']
+tg-clean-all:
     @echo "🧹 Cleaning Terragrunt cache for all environments and .terraform directories"
-    @cd infra/terragrunt && find . -type d -name ".terragrunt-cache" -exec rm -rf {} +
-    @cd infra/terragrunt && find . -type d -name ".terraform" -exec rm -rf {} +
+    @find . -maxdepth 4 -type d \( -name ".terragrunt-cache" -o -name ".terraform" \) -exec rm -rf {} +
+    @find . -maxdepth 4 -type f -name ".terraform.lock.hcl" -exec rm -rf {} +
+    @find . -maxdepth 4 -type f -name ".terraform.lock.hcl" -exec rm -rf {} +
+
+# 🧹 Terragrunt and Terraform cache cleanup for a specific path
+[working-directory:'infra/terragrunt']
+tg-clean tgpath:
+    @echo "🧹 Cleaning Terragrunt cache for specific path: {{tgpath}}"
+    @if [ -d {{tgpath}} ]; then \
+        cd {{tgpath}} && \
+        find . -maxdepth 4 -type d \( -name ".terragrunt-cache" -o -name ".terraform" \) -exec rm -rf {} + && \
+        find . -maxdepth 4 -type f -name ".terraform.lock.hcl" -exec rm -rf {} +; \
+    else \
+        echo "❌ Directory {{tgpath}} does not exist."; \
+    fi
 
 # 🧹 Terragrunt format, run hclfmt on all Terragrunt files
 # Example: `just tg-format check=true diff=true exclude=".terragrunt-cache,modules"`
 tg-format check="false" diff="false" exclude="":
     @echo "🔍 Running Terragrunt HCL formatting via utility script"
     @./scripts/justfile-utils.sh "{{TERRAGRUNT_DIR}}" "{{check}}" "{{diff}}" "{{exclude}}"
+
+# ✅ Terragrunt validate, run hclvalidate on all Terragrunt files
+# Example: `just tg-hclvalidate`
+tg-hclvalidate:
+    @echo "✅ Running Terragrunt HCL validation via utility script"
+    @./scripts/justfile-utils.sh terragrunt_hclvalidate "{{TERRAGRUNT_DIR}}"
 
 tg_env := "global"
 tg_stack := "dni"
