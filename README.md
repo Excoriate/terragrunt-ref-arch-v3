@@ -147,35 +147,33 @@ A sophisticated environment variable management system powered by [direnv](https
 
 For a comprehensive list of supported environment variables, their descriptions, and customization levels, please refer to the [Environment Variables Documentation](docs/environment-variables.md).
 
-| Category | Variable Name | Description | Default Value | Customization Level |
-| -------- | ------------- | ----------- | ------------- | ------------------- |
-| **Terragrunt Flags** | `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE` | Controls provider file generation | `"true"` | Global/Unit |
-| | `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` | Controls version file generation | `"true"` | Global/Unit |
-| | `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE` | Controls .terraform-version file generation | `"false"` | Global |
-| **Deployment Configuration** | `TG_STACK_REGION` | Deployment AWS region | `"us-east-1"` | Global/Environment |
-| **Terraform Version** | `TG_STACK_TF_VERSION` | Enforced Terraform version | `"1.9.0"` | Global |
-| **Provider Credentials** | `TG_STACK_PROVIDER_CREDENTIAL` | Provider authentication credentials | `""` (empty) | Unit-specific |
-| **Application Metadata** | `TG_STACK_APP_PRODUCT_NAME` | Project/application name | `"my-app"` | Global |
-| | `TG_STACK_APP_PRODUCT_VERSION` | Project/application version | `"0.0.0"` | Global |
-| | `TG_STACK_APP_AUTHOR` | Configuration author | `""` (empty) | Global |
-| **Environment** | `TG_ENVIRONMENT` | Current environment | `"development"` | Environment-specific |
-| **Remote State** | `TG_STACK_REMOTE_STATE_BUCKET_NAME` | S3 bucket for remote state | `""` (empty) | Global |
-| | `TG_STACK_REMOTE_STATE_LOCK_TABLE` | DynamoDB lock table | `""` (empty) | Global |
-| | `TG_STACK_REMOTE_STATE_REGION` | Remote state storage region | `"us-east-1"` | Global |
-| | `TG_STACK_REMOTE_STATE_OBJECT_BASENAME` | Remote state file basename | `"terraform.tfstate.json"` | Global |
-| | `TG_STACK_REMOTE_STATE_BACKEND_TF_FILENAME` | Backend configuration filename | `"backend.tf"` | Global |
-| **Terragrunt Configuration** | `TERRAGRUNT_DOWNLOAD_DIR` | Terragrunt cache directory | `"${HOME}/.terragrunt-cache/$(basename "$PROJECT_ROOT")"` | Global |
-| | `TERRAGRUNT_CACHE_MAX_AGE` | Terragrunt cache expiration | `"168h"` (7 days) | Global |
-| | `TERRAGRUNT_LOG_LEVEL` | Terragrunt logging verbosity | `"info"` | Global |
-| | `TERRAGRUNT_DISABLE_CONSOLE_OUTPUT` | Console output control | `"false"` | Global |
-| | `TERRAGRUNT_AUTO_INIT` | Automatic Terragrunt initialization | `"true"` | Global |
-| | `TERRAGRUNT_AUTO_RETRY` | Automatic retry on failure | `"true"` | Global |
-| **Terraform Configuration** | `TF_INPUT` | Disable interactive Terraform input | `"0"` | Global |
-| **Project-wide Variables** | `PROJECT_ROOT` | Project root directory | Current directory | Global |
-| | `DEFAULT_REGION` | Default AWS region | `"us-east-1"` | Global |
-| **Locale Settings** | `LANG` | Language setting | `"en_US.UTF-8"` | Global |
-| | `LC_ALL` | Locale setting | `"en_US.UTF-8"` | Global |
-| **Debugging & Logging** | `DIRENV_LOG_FORMAT` | Direnv log format | `"[direnv] %s"` | Global |
+| Category | Variable Name | Description | Default Value (in HCL) | Used In |
+| -------- | ------------- | ----------- | ------------- | ------- |
+| **Terragrunt Flags** | `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE` | Controls dynamic provider file generation | `"true"` | `config.hcl` |
+| | `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` | Controls dynamic version file generation | `"true"` | `config.hcl` |
+| | `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE` | Controls `.terraform-version` file generation | `"false"` | `config.hcl` |
+| **Deployment Config** | `TG_STACK_DEPLOYMENT_REGION` | Default AWS region for deployments | `"us-east-1"` | `config.hcl` |
+| **Terraform Version** | `TG_STACK_TF_VERSION` | Enforced Terraform version for `.terraform-version` | `"1.11.3"` | `config.hcl` |
+| **Application Metadata** | `TG_STACK_APP_PRODUCT_NAME` | Project/application name | `"my-app"` | `app.hcl`, `tags.hcl` |
+| | `TG_STACK_APP_AUTHOR` | Configuration author | `""` | `tags.hcl` |
+| **Remote State** | `TG_STACK_REMOTE_STATE_BUCKET_NAME` | S3 bucket for remote state | *None* | `remote_state.hcl` |
+| | `TG_STACK_REMOTE_STATE_LOCK_TABLE` | DynamoDB lock table | *None* | `remote_state.hcl` |
+| | `TG_STACK_REMOTE_STATE_REGION` | Remote state storage region | `"us-east-1"` | `remote_state.hcl` |
+| | `TG_STACK_REMOTE_STATE_OBJECT_BASENAME` | Remote state file basename | `"terraform.tfstate.json"` | `remote_state.hcl` |
+| | `TG_STACK_REMOTE_STATE_BACKEND_TF_FILENAME` | Backend configuration filename | `"backend.tf"` | `remote_state.hcl` |
+| **Provider Credentials** | `TG_STACK_PROVIDER_CREDENTIAL` | Provider authentication credentials (if needed) | `""` | Referenced in comments |
+| **Module Versions (Unit Overrides)** | `TG_STACK_TF_MODULE_NAME_GENERATOR_VERSION_DEFAULT` | Overrides default version for name-generator module set in `_units/name_generator.hcl` | `"v0.1.0"` | `_units/name_generator.hcl` |
+| | `TG_STACK_TF_MODULE_LASTNAME_GENERATOR_VERSION_DEFAULT` | Overrides default version for lastname-generator module set in `_units/lastname_generator.hcl` | `"v0.1.0"` | `_units/lastname_generator.hcl` |
+| | `TG_STACK_TF_MODULE_DNI_GENERATOR_VERSION_DEFAULT` | Overrides default version for dni-generator module set in `_units/dni_generator.hcl` | `"v0.1.0"` | `_units/dni_generator.hcl` |
+| | `TG_STACK_TF_MODULE_AGE_GENERATOR_VERSION_DEFAULT` | Overrides default version for age-generator module set in `_units/age_generator.hcl` | `"v0.1.0"` | `_units/age_generator.hcl` |
+| **Terragrunt Config (Standard)** | `TERRAGRUNT_DOWNLOAD_DIR` | Terragrunt cache directory | `"${HOME}/.terragrunt-cache/..."` | Terragrunt Runtime |
+| | `TERRAGRUNT_CACHE_MAX_AGE` | Terragrunt cache expiration | `"168h"` | Terragrunt Runtime |
+| | `TERRAGRUNT_LOG_LEVEL` | Terragrunt logging verbosity | `"info"` | Terragrunt Runtime |
+| | `TERRAGRUNT_DISABLE_CONSOLE_OUTPUT` | Console output control | `"false"` | Terragrunt Runtime |
+| | `TERRAGRUNT_AUTO_INIT` | Automatic Terragrunt initialization | `"true"` | Terragrunt Runtime |
+| | `TERRAGRUNT_AUTO_RETRY` | Automatic retry on failure | `"true"` | Terragrunt Runtime |
+
+*Note: Variables like `TG_ENVIRONMENT`, `TF_INPUT`, `PROJECT_ROOT`, `LANG`, `LC_ALL`, `DIRENV_LOG_FORMAT` etc., are typically set directly in the environment or via `.envrc` files and are not explicitly retrieved using `get_env()` within the shared Terragrunt HCL configuration files.*
 
 #### Quick Environment Setup
 

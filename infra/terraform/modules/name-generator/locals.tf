@@ -1,6 +1,6 @@
 locals {
   # Predefined name lists with gender-specific variations
-  male_names = ["Juan", "Carlos", "Miguel", "Pedro", "Luis"]
+  male_names   = ["Juan", "Carlos", "Miguel", "Pedro", "Luis"]
   female_names = ["Maria", "Ana", "Carmen", "Sofia", "Elena"]
 
   # Combine names based on gender

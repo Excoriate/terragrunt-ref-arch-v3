@@ -5,6 +5,7 @@
 # 📍 Path configurations
 # Centralize path management to ensure consistent directory references across recipes
 TERRAGRUNT_DIR := "./infra/terragrunt"
+TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 
 # 🐚 Shell configuration
 # Use bash with strict error handling to prevent silent failures
@@ -34,6 +35,53 @@ hooks-install:
 hooks-run:
     @echo "🔍 Running pre-commit hooks from .pre-commit-config.yaml..."
     @./scripts/hooks/pre-commit-init.sh run
+
+# 🛠️ Allow direnv to run
+# Ensures that direnv is allowed to run in the current directory
+# Useful for managing environment variables and configurations
+allow-direnv:
+    @echo "🔒 Allow direnv to run..."
+    @direnv allow
+
+# 🔄 Reload direnv environment
+# Manually reload the direnv environment when needed
+reload-env:
+    @echo "🔄 Manually reloading direnv environment..."
+    @direnv reload
+
+# 🧹 Clean direnv cache
+# Removes the direnv cache to force a fresh environment build
+# Useful when experiencing issues with the development environment
+clean-direnv:
+    @echo "🧹 Cleaning direnv cache..."
+    @rm -rf .direnv
+    @direnv allow
+    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
+
+# 🔍 Run Terraform command for a specific module
+[working-directory:'infra/terraform/modules']
+tf-run module='random-string-generator' cmd='init' args='':
+    @echo "🔍 Preparing to run Terraform command..."
+    @echo "📂 Module Path: {{module}}"
+    @echo "⚙️ Command: {{cmd}}"
+    @echo "📋 Arguments: {{args}}"
+    @cd {{module}} && terraform {{cmd}} {{args}}
+    @echo "✅ Terraform {{cmd}} executed successfully for module: {{module}}"
+
+# 🌿 Format all Terraform files across modules, examples, and tests directories
+tf-format-all:
+    @echo "🌿 Formatting all Terraform files across the repository..."
+    @echo "📂 Scanning directories: {{TERRAFORM_MODULES_DIR}}/"
+
+    @echo "\n🔍 Formatting files in modules/"
+    @pushd {{TERRAFORM_MODULES_DIR}} > /dev/null && \
+    find . -type f \( -name "*.tf" -o -name "*.tfvars" \) | sort | while read -r file; do \
+        echo "   📄 Processing: $file"; \
+    done && \
+    terraform fmt -recursive && \
+    popd > /dev/null
+
+    @echo "\n✅ All Terraform files have been formatted!"
 
 # 🧹 Terragrunt and Terraform cache cleanup
 [working-directory:'infra/terragrunt']
@@ -71,23 +119,29 @@ tg_env := "global"
 tg_stack := "dni"
 tg_unit := "dni_generator"
 
+# 🚀 Run Terragrunt CI checks (hclvalidate and format)
+tg-ci: (tg-hclvalidate) (tg-format)
+
 # 🚀 Run Terragrunt on a specific infrastructure unit
 # Flexible recipe for running Terragrunt commands on individual units
 # Example: `just tg-run cmd=init`
+[working-directory:'infra/terragrunt']
 tg-run cmd="init":
-    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}}/{{tg_unit}} && terragrunt {{cmd}}
+    @cd {{tg_env}}/{{tg_stack}}/{{tg_unit}} && terragrunt {{cmd}}
 
 # 🌐 Run Terragrunt plan across all units in a stack
 # Provides a comprehensive view of potential infrastructure changes
 # Useful for pre-deployment validation and impact assessment
+[working-directory:'infra/terragrunt']
 tg-run-all-plan :
-    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all plan
+    @cd {{tg_env}}/{{tg_stack}} && terragrunt run-all plan
 
 # 🚀 Apply infrastructure changes across all units in a stack
 # Automated, non-interactive deployment of infrastructure
 # Includes auto-approval to streamline deployment processes
+[working-directory:'infra/terragrunt']
 tg-run-all-apply :
-    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all apply --auto-approve --terragrunt-non-interactive
+    @cd {{tg_env}}/{{tg_stack}} && terragrunt run-all apply --auto-approve --terragrunt-non-interactive
 
 # 💥 Destroy infrastructure across all units in a stack
 # Provides a safe, controlled method for infrastructure teardown
@@ -95,27 +149,7 @@ tg-run-all-apply :
 tg-run-all-destroy:
     @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
 
-# 🛠️ Allow direnv to run
-# Ensures that direnv is allowed to run in the current directory
-# Useful for managing environment variables and configurations
-allow-direnv:
-    @echo "🔒 Allow direnv to run..."
-    @direnv allow
 
-# 🔄 Reload direnv environment
-# Manually reload the direnv environment when needed
-reload-env:
-    @echo "🔄 Manually reloading direnv environment..."
-    @direnv reload
-
-# 🧹 Clean direnv cache
-# Removes the direnv cache to force a fresh environment build
-# Useful when experiencing issues with the development environment
-clean-direnv:
-    @echo "🧹 Cleaning direnv cache..."
-    @rm -rf .direnv
-    @direnv allow
-    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
 
 # 🔍 Open Dagger CI terminal. E.g.: just ci-terminal --help
 [working-directory:'ci/ci-terragrunt']

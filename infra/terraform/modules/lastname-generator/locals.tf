@@ -1,6 +1,6 @@
 locals {
   # Predefined lastname lists with gender-specific variations
-  male_lastnames = ["Garcia", "Rodriguez", "Martinez", "Lopez", "Gonzalez"]
+  male_lastnames   = ["Garcia", "Rodriguez", "Martinez", "Lopez", "Gonzalez"]
   female_lastnames = ["Garcia", "Rodriguez", "Martinez", "Lopez", "Gonzalez"]
 
   # Combine lastnames based on gender

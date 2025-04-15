@@ -13,6 +13,7 @@ locals {
   shared_config_app          = read_terragrunt_config("${get_terragrunt_dir()}/_shared/_config/app.hcl")
   shared_config_remote_state = read_terragrunt_config("${get_terragrunt_dir()}/_shared/_config/remote_state.hcl")
   shared_config_tags         = read_terragrunt_config("${get_terragrunt_dir()}/_shared/_config/tags.hcl")
+  shared_config_git          = read_terragrunt_config("${get_terragrunt_dir()}/_shared/_config/git.hcl")
 
   // 🔌 Provider Configuration Management
   // Safely read provider configurations if they exist
@@ -61,7 +62,7 @@ locals {
   cfg_app          = local.shared_config_app.locals
   cfg_remote_state = local.shared_config_remote_state.locals
   cfg_tags         = local.shared_config_tags.locals
-
+  cfg_git          = local.shared_config_git.locals
   // 🏷️ Global Resource Tagging
   // Implements consistent resource identification and management through a centralized
   // tagging strategy. These tags enable cost tracking, compliance monitoring, and
@@ -82,7 +83,7 @@ locals {
   // support multi-environment deployments. Allows runtime configuration flexibility
   // through environment variables, enabling easy environment-specific customizations.
   // Use environment variables to override default settings when needed.
-  deployment_region_unnormalized = get_env("TG_STACK_REGION", "us-east-1")
+  deployment_region_unnormalized = get_env("TG_STACK_DEPLOYMENT_REGION", "us-east-1")
   deployment_region              = lower(trimspace(local.deployment_region_unnormalized))
 
   // 💾 Remote State Management

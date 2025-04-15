@@ -184,7 +184,7 @@ terragrunt_hclvalidate() {
   else
     local exit_code=$?
     log_message "ERROR" "❌ HCL validation failed. Found invalid files. See JSON output above for details."
-    return ${exit_code}
+    return "${exit_code}"
   fi
 }
 
