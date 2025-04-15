@@ -110,6 +110,28 @@ locals {
 - Flexible region and bucket management
 - Predictable state key generation
 
+### 4. Git Source Configuration (`git.hcl`)
+
+Centralizes base URLs for sourcing Terraform modules from various Git providers or local paths.
+
+```hcl
+locals {
+  # Centralized Git base URLs
+  git_base_urls = {
+    github = "git::git@github.com:"
+    gitlab = "git::gitlab.com:"
+    local  = "${get_repo_root()}/infra/terraform/modules"
+    # Add other providers as needed
+  }
+}
+```
+
+#### Git Source Management Benefits
+
+- **Consistency**: Ensures uniform module source URLs across all Terragrunt configurations.
+- **Maintainability**: Simplifies updates to source locations (e.g., migrating from GitHub to GitLab).
+- **Flexibility**: Easily switch between remote and local module sources during development or testing.
+
 ## Environment Variable Management 🌐
 
 ### Recommended Configuration

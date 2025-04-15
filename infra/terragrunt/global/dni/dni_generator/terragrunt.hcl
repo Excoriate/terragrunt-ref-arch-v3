@@ -37,10 +37,13 @@ locals {
   # - Precise version control
   # - Consistent module referencing across infrastructure
   # ---------------------------------------------------------------------------------------------------------------------
-  tf_module_local_path       = "${get_repo_root()}/infra/terraform/modules/dni-generator"
+  tf_module_local_path       = "${include.shared.locals.git_base_url}/dni-generator"
   tf_module_version_override = ""
   tf_module_version          = local.tf_module_version_override != "" ? local.tf_module_version_override : include.shared.locals.tf_module_version_default
   tf_module_source           = include.shared.locals.tf_module_source
+
+  tg_source_computed    = local.tf_module_local_path != "" ? local.tf_module_local_path : format("%s?ref=%s", local.tf_module_source, local.tf_module_version)
+  echo_tf_module_source = run_cmd("sh", "-c", "echo '🔧  TF Module Source (child): ${local.tg_source_computed}'")
 }
 
 # 🚀 Terraform Source Configuration
@@ -49,7 +52,7 @@ locals {
 # - Shared module source
 # - Specific version reference
 terraform {
-  source = local.tf_module_local_path != "" ? local.tf_module_local_path : format("%s?ref=%s", local.tf_module_source, local.tf_module_version)
+  source = local.tg_source_computed
 }
 
 # 📦 Inputs Configuration

@@ -153,18 +153,68 @@ terragrunt_format() {
 }
 
 # =============================================================================
+# TERRAGRUNT HCL VALIDATE
+# =============================================================================
+
+# Validate Terragrunt HCL files syntax
+# Usage: terragrunt_hclvalidate "/path/to/terragrunt/dir"
+terragrunt_hclvalidate() {
+  local terragrunt_dir="$1"
+
+  log_message "INFO" "🔍 Running Terragrunt HCL validation"
+
+  # Validate inputs
+  if [[ ! -d "${terragrunt_dir}" ]]; then
+    log_message "ERROR" "Terragrunt directory does not exist: ${terragrunt_dir}"
+    return 1
+  fi
+
+  # Change to the terragrunt directory
+  cd "${terragrunt_dir}" || {
+    log_message "ERROR" "Failed to change to directory: ${terragrunt_dir}"
+    return 1
+  }
+
+  log_message "INFO" "🔄 Validating HCL files in ${terragrunt_dir}..."
+
+  # Execute terragrunt hclvalidate
+  if terragrunt hclvalidate --json; then
+    log_message "INFO" "✅ HCL validation successful. All files are valid."
+    return 0
+  else
+    local exit_code=$?
+    log_message "ERROR" "❌ HCL validation failed. Found invalid files. See JSON output above for details."
+    return "${exit_code}"
+  fi
+}
+
+# =============================================================================
 # Command-line interface when script is executed directly
 # =============================================================================
 
-# Execute terraform_format when script is called directly
+# Execute requested function when script is called directly
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  # Default values
-  terragrunt_dir="${1:-.}"
-  check_mode="${2:-false}"
-  diff_mode="${3:-false}"
-  exclude_pattern="${4:-}"
+  command_to_run="${1:-terragrunt_format}" # Default to format if no command specified
+  shift # Remove the command name from arguments
 
-  terragrunt_format "${terragrunt_dir}" "${check_mode}" "${diff_mode}" "${exclude_pattern}"
+  case "${command_to_run}" in
+    terragrunt_format)
+      terragrunt_dir="${1:-.}"
+      check_mode="${2:-false}"
+      diff_mode="${3:-false}"
+      exclude_pattern="${4:-}"
+      terragrunt_format "${terragrunt_dir}" "${check_mode}" "${diff_mode}" "${exclude_pattern}"
+      ;;
+    terragrunt_hclvalidate)
+      terragrunt_dir="${1:-.}"
+      terragrunt_hclvalidate "${terragrunt_dir}"
+      ;;
+    *)
+      log_message "ERROR" "Unknown command: ${command_to_run}"
+      echo "Usage: $0 {terragrunt_format|terragrunt_hclvalidate} [arguments...]" >&2
+      exit 1
+      ;;
+  esac
 fi
 
 # Shellcheck directives for sourcing and shell compatibility

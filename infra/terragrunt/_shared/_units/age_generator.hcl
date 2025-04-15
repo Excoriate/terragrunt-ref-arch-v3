@@ -87,9 +87,9 @@ locals {
   # - Flexible repository and path selection
   # - Semantic version control
   #
-  git_base_url              = "git::git@github.com:"
+  git_base_url              = local.cfg.locals.cfg_git.git_base_urls.local
   tf_module_repository      = "your-org/terraform-modules.git"
-  tf_module_version_default = "v0.1.0"
+  tf_module_version_default = get_env("TG_STACK_TF_MODULE_AGE_GENERATOR_VERSION_DEFAULT", "v0.1.0")
   tf_module_path_default    = "modules/age-generator"
 
   tf_module_source = format(
@@ -98,6 +98,16 @@ locals {
     local.tf_module_repository,
     local.tf_module_path_default
   )
+
+  echo_tf_module_source = run_cmd("sh", "-c", "echo '🔧  TF Module Source (parent): ${local.tf_module_source} version: ${local.tf_module_version_default}'")
+
+  # ---------------------------------------------------------------------------------------------------------------------
+  # 🌐 SPECIFIC MODULE CONFIGURATION
+  # ---------------------------------------------------------------------------------------------------------------------
+  # Here we define the specific configuration for the module.
+  # This is useful when we need to override the default configuration for the module.
+  #
+  # TODO: Add specific locals, or configuration for your module to be computed here.
 }
 
 # 🔗 DEPENDENCY
