@@ -37,7 +37,7 @@ locals {
   # - Precise version control
   # - Consistent module referencing across infrastructure
   # ---------------------------------------------------------------------------------------------------------------------
-  tf_module_local_path       = "${include.shared.locals.cfg_git.git_base_urls.local}/dni-generator"
+  tf_module_local_path       = "${include.shared.locals.git_base_url}/dni-generator"
   tf_module_version_override = ""
   tf_module_version          = local.tf_module_version_override != "" ? local.tf_module_version_override : include.shared.locals.tf_module_version_default
   tf_module_source           = include.shared.locals.tf_module_source

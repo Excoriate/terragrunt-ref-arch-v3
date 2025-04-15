@@ -87,7 +87,7 @@ locals {
   # - Flexible repository and path selection
   # - Semantic version control
   #
-  git_base_url              = local.cfg.locals.cfg_git.git_base_urls.github
+  git_base_url              = local.cfg.locals.cfg_git.git_base_urls.local
   tf_module_repository      = "your-org/terraform-modules.git"
   tf_module_version_default = get_env("TG_STACK_TF_MODULE_AGE_GENERATOR_VERSION_DEFAULT", "v0.1.0")
   tf_module_path_default    = "modules/age-generator"

@@ -81,15 +81,27 @@ tf-format-all:
     terraform fmt -recursive && \
     popd > /dev/null
 
-    @echo "\n🔍 Formatting files in tests/"
-    @pushd {{TERRAFORM_MODULES_DIR}}/tests > /dev/null && \
-    find . -type f \( -name "*.tf" -o -name "*.tfvars" \) | sort | while read -r file; do \
-        echo "   📄 Processing: $file"; \
-    done && \
-    terraform fmt -recursive && \
-    popd > /dev/null
-
     @echo "\n✅ All Terraform files have been formatted!"
+
+# 🧹 Clean Terraform cache for all modules
+[working-directory:'infra/terraform/modules']
+tf-clean-all:
+    @echo "🧹 Cleaning Terraform cache for all modules"
+    @if [ -n "$(find . -maxdepth 4 -type d -name ".terraform" 2>/dev/null)" ]; then \
+        echo "🔍 Found .terraform directories to clean"; \
+        find . -maxdepth 4 -type d -name ".terraform" -exec rm -rf {} +; \
+        echo "✅ Removed .terraform directories"; \
+    else \
+        echo "ℹ️ No .terraform directories found"; \
+    fi
+    @if [ -n "$(find . -maxdepth 4 -type f -name ".terraform.lock.hcl" 2>/dev/null)" ]; then \
+        echo "🔍 Found .terraform.lock.hcl files to clean"; \
+        find . -maxdepth 4 -type f -name ".terraform.lock.hcl" -exec rm -rf {} +; \
+        echo "✅ Removed .terraform.lock.hcl files"; \
+    else \
+        echo "ℹ️ No .terraform.lock.hcl files found"; \
+    fi
+    @echo "🧹 Cleaning completed"
 
 # 🧹 Terragrunt and Terraform cache cleanup
 [working-directory:'infra/terragrunt']
@@ -115,7 +127,7 @@ tg-clean tgpath:
 # Example: `just tg-format check=true diff=true exclude=".terragrunt-cache,modules"`
 tg-format check="false" diff="false" exclude="":
     @echo "🔍 Running Terragrunt HCL formatting via utility script"
-    @./scripts/justfile-utils.sh "{{TERRAGRUNT_DIR}}" "{{check}}" "{{diff}}" "{{exclude}}"
+    @./scripts/justfile-utils.sh terragrunt_format "{{TERRAGRUNT_DIR}}" "{{check}}" "{{diff}}" "{{exclude}}"
 
 # ✅ Terragrunt validate, run hclvalidate on all Terragrunt files
 # Example: `just tg-hclvalidate`
