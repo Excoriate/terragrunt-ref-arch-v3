@@ -81,6 +81,14 @@ tf-format-all:
     terraform fmt -recursive && \
     popd > /dev/null
 
+    @echo "\n🔍 Formatting files in tests/"
+    @pushd {{TERRAFORM_MODULES_DIR}}/tests > /dev/null && \
+    find . -type f \( -name "*.tf" -o -name "*.tfvars" \) | sort | while read -r file; do \
+        echo "   📄 Processing: $file"; \
+    done && \
+    terraform fmt -recursive && \
+    popd > /dev/null
+
     @echo "\n✅ All Terraform files have been formatted!"
 
 # 🧹 Terragrunt and Terraform cache cleanup
