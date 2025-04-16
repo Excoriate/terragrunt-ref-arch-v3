@@ -146,8 +146,13 @@ tg-ci: (tg-hclvalidate) (tg-format)
 # Flexible recipe for running Terragrunt commands on individual units
 # Example: `just tg-run cmd=init`
 [working-directory:'infra/terragrunt']
-tg-run cmd="init":
-    @cd {{tg_env}}/{{tg_stack}}/{{tg_unit}} && terragrunt {{cmd}}
+tg-run env stack unit cmd="init":
+    @cd {{env}}/{{stack}}/{{unit}} && \
+    if [ "{{cmd}}" = "apply" ] || [ "{{cmd}}" = "destroy" ]; then \
+        terragrunt {{cmd}} --auto-approve; \
+    else \
+        terragrunt {{cmd}}; \
+    fi
 
 # 🌐 Run Terragrunt plan across all units in a stack
 # Provides a comprehensive view of potential infrastructure changes
