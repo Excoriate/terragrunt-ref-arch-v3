@@ -37,6 +37,8 @@ locals {
   # - Precise version control
   # - Consistent module referencing across infrastructure
   # ---------------------------------------------------------------------------------------------------------------------
+  # TODO: Switch this to use the tf_module_local_path when testing locally. If empty, it'll use the remote tf module set in the _shared/_units/<my_unit>.hcl file.
+  # tf_module_local_path       = "${include.shared.locals.git_base_url}/my-tf-module"
   tf_module_local_path       = "${include.shared.locals.git_base_url}/lastname-generator"
   tf_module_version_override = ""
   tf_module_version          = local.tf_module_version_override != "" ? local.tf_module_version_override : include.shared.locals.tf_module_version_default
