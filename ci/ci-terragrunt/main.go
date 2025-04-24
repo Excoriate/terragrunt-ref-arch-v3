@@ -13,8 +13,8 @@ import (
 
 const (
 	// Default version for binaries
-	defaultTerraformVersion  = "1.10.1"
-	defaultTerragruntVersion = "0.77.7"
+	defaultTerraformVersion  = "1.11.3"
+	defaultTerragruntVersion = "0.77.20"
 	defaultImage             = "alpine"
 	defaultImageTag          = "3.21.3"
 	defaultMntPath           = "/mnt"
@@ -625,9 +625,8 @@ func (m *Terragrunt) WithAWSOIDC(
 // Parameters:
 //   - ctx: The context for the Dagger container.
 func (m *Terragrunt) WithGitlabToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
 	m.Ctr = m.Ctr.
-		WithEnvVariable("GITLAB_TOKEN", tokenTxtValue)
+		WithSecretVariable("GITLAB_TOKEN", token)
 
 	return m
 }
@@ -639,9 +638,8 @@ func (m *Terragrunt) WithGitlabToken(ctx context.Context, token *dagger.Secret) 
 // Parameters:
 //   - ctx: The context for the Dagger container.
 func (m *Terragrunt) WithGitHubToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
 	m.Ctr = m.Ctr.
-		WithEnvVariable("GITHUB_TOKEN", tokenTxtValue)
+		WithSecretVariable("GITHUB_TOKEN", token)
 
 	return m
 }
@@ -653,9 +651,8 @@ func (m *Terragrunt) WithGitHubToken(ctx context.Context, token *dagger.Secret) 
 // Parameters:
 //   - ctx: The context for the Dagger container.
 func (m *Terragrunt) WithTerraformToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
 	m.Ctr = m.Ctr.
-		WithEnvVariable("TF_TOKEN", tokenTxtValue)
+		WithSecretVariable("TF_TOKEN", token)
 
 	return m
 }

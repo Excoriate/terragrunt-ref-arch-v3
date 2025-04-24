@@ -12,7 +12,7 @@ func getTFInstallCmd(tfVersion string) string {
 	installDir := "/usr/local/bin/terraform"
 	command := fmt.Sprintf(`apk add --no-cache curl unzip &&
 	curl -L https://releases.hashicorp.com/terraform/%[1]s/terraform_%[1]s_linux_amd64.zip -o /tmp/terraform.zip &&
-	unzip /tmp/terraform.zip -d /tmp &&
+	unzip -o /tmp/terraform.zip -d /tmp &&
 	mv /tmp/terraform %[2]s &&
 	chmod +x %[2]s &&
 	rm /tmp/terraform.zip`, tfVersion, installDir)
