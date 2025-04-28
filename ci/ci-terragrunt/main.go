@@ -752,6 +752,16 @@ func (m *Terragrunt) WithDotEnvFile(ctx context.Context, src *dagger.Directory) 
 	return m, nil
 }
 
+// WithTerragruntNoInteractive sets the Terragrunt no interactive option in the container.
+//
+// This method sets the Terragrunt no interactive option in the container, making it available as an environment variable.
+func (m *Terragrunt) WithTerragruntNoInteractive() *Terragrunt {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_NON_INTERACTIVE", "true")
+
+	return m
+}
+
 // Exec executes a given command within a dagger container.
 // It returns the output of the command or an error if the command is invalid or fails to execute.
 //

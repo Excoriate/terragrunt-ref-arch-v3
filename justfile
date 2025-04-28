@@ -14,6 +14,10 @@ TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 set shell := ["bash", "-uce"]
 set dotenv-load
 
+# Avoid reporting traces to Dagger
+# TODO: Uncomment if traces aren't needed.
+# export NOTHANKS := "1"
+
 # 📋 Default recipe: List all available commands
 # Provides a quick overview of available infrastructure management commands
 default:
