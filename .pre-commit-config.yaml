@@ -31,7 +31,11 @@ repos:
             \.vscode/.*\.json
           )$
       - id: pretty-format-json
-        exclude: *json_excludes
+        exclude: >
+          (?x)^(
+            \.vscode/.*\.json|
+            pipeline/infra/dagger\.json
+          )$
 
   - repo: https://github.com/google/yamlfmt
     rev: v0.16.0 # Keep existing or update if needed
