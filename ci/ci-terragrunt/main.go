@@ -14,7 +14,7 @@ import (
 const (
 	// Default version for binaries
 	defaultTerraformVersion  = "1.11.3"
-	defaultTerragruntVersion = "0.77.20"
+	defaultTerragruntVersion = "0.78.0"
 	defaultImage             = "alpine"
 	defaultImageTag          = "3.21.3"
 	defaultMntPath           = "/mnt"
