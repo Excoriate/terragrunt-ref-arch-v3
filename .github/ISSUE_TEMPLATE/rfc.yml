@@ -24,7 +24,8 @@ body:
     id: problem
     attributes:
       label: Use case
-      description: Please share the use case and motivation behind this proposal, especially as it relates to the Terragrunt Reference Architecture.
+      description: Please share the use case and motivation behind this proposal, especially as it relates to the Terragrunt
+        Reference Architecture.
     validations:
       required: true
   - type: textarea
@@ -53,7 +54,8 @@ body:
     id: integrations
     attributes:
       label: Dependencies and Integrations
-      description: If applicable, please share whether this feature has additional dependencies, and how it might integrate with other utilities available
+      description: If applicable, please share whether this feature has additional dependencies, and how it might integrate
+        with other utilities available
     validations:
       required: false
   - type: textarea
