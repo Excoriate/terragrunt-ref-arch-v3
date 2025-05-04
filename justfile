@@ -7,6 +7,12 @@
 TERRAGRUNT_DIR := "./infra/terragrunt"
 TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 
+# 📍 Default values for Terragrunt environment, stack, and unit
+# TODO: Change it accordingly to the environment, stack, and unit you are working on
+DEFAULT_TG_ENV := "global"
+DEFAULT_TG_STACK := "dni"
+DEFAULT_TG_UNIT := "dni_generator"
+
 # 🐚 Shell configuration
 # Use bash with strict error handling to prevent silent failures
 # -u: Treat unset variables as an error
@@ -14,10 +20,19 @@ TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 set shell := ["bash", "-uce"]
 set dotenv-load
 
+# Avoid reporting traces to Dagger
+# TODO: Uncomment if traces aren't needed.
+# export NOTHANKS := "1"
+
 # 📋 Default recipe: List all available commands
 # Provides a quick overview of available infrastructure management commands
 default:
     @just --list
+
+# 🌿 Start Nix Development Shell
+dev:
+    @echo "🌿 Starting Nix Development Shell for Terragrunt Reference Architecture 🚀"
+    @nix develop . --impure --extra-experimental-features nix-command --extra-experimental-features flakes
 
 # 🗑️ Clean macOS system files
 # Removes .DS_Store files that can cause unnecessary version control noise
@@ -135,109 +150,85 @@ tg-hclvalidate:
     @echo "✅ Running Terragrunt HCL validation via utility script"
     @./scripts/justfile-utils.sh terragrunt_hclvalidate "{{TERRAGRUNT_DIR}}"
 
-tg_env := "global"
-tg_stack := "dni"
-tg_unit := "dni_generator"
-
 # 🚀 Run Terragrunt CI checks (hclvalidate and format)
 tg-ci: (tg-hclvalidate) (tg-format)
 
 # 🚀 Run Terragrunt on a specific infrastructure unit
-# Flexible recipe for running Terragrunt commands on individual units
-# Example: `just tg-run cmd=init`
+# Example: `just tg-run env=dev stack=non-distributable unit=random-string-generator cmd=init`
 [working-directory:'infra/terragrunt']
 tg-run env stack unit cmd="init":
     @cd {{env}}/{{stack}}/{{unit}} && \
     if [ "{{cmd}}" = "apply" ] || [ "{{cmd}}" = "destroy" ]; then \
+        echo "🔒 Running Terragrunt {{cmd}} with auto-approve flag" && \
         terragrunt {{cmd}} --auto-approve; \
     else \
+        echo "🔍 Running Terragrunt {{cmd}}" && \
         terragrunt {{cmd}}; \
     fi
 
-# 🌐 Run Terragrunt plan across all units in a stack
-# Provides a comprehensive view of potential infrastructure changes
-# Useful for pre-deployment validation and impact assessment
+# 🚀 Run Terragrunt on all infrastructure units in a stack
+# Example: `just tg-run-all env=dev stack=non-distributable unit=random-string-generator cmd=init`
 [working-directory:'infra/terragrunt']
-tg-run-all-plan :
-    @cd {{tg_env}}/{{tg_stack}} && terragrunt run-all plan
+tg-run-all env stack cmd="init":
+    @cd {{env}}/{{stack}} && terragrunt run-all {{cmd}} $(if [ "{{cmd}}" = "apply" ] || [ "{{cmd}}" = "destroy" ]; then echo "--auto-approve"; fi)
 
-# 🚀 Apply infrastructure changes across all units in a stack
-# Automated, non-interactive deployment of infrastructure
-# Includes auto-approval to streamline deployment processes
-[working-directory:'infra/terragrunt']
-tg-run-all-apply :
-    @cd {{tg_env}}/{{tg_stack}} && terragrunt run-all apply --auto-approve --terragrunt-non-interactive
-
-# 💥 Destroy infrastructure across all units in a stack
-# Provides a safe, controlled method for infrastructure teardown
-# Non-interactive with auto-approval for scripting and automation
-tg-run-all-destroy:
-    @cd infra/terragrunt/{{tg_env}}/{{tg_stack}} && terragrunt run-all destroy --terragrunt-non-interactive --auto-approve
-
-
-
-# 🔍 Open Dagger CI terminal. E.g.: just ci-terminal --help
-[working-directory:'ci/ci-terragrunt']
-ci-terminal args="":
-    @echo "🔍 Open Dagger CI terminal"
-    @echo "🔍 Building the dagger module"
+# 🔨 Build the Dagger pipeline
+[working-directory:'pipeline/infra']
+pipeline-infra-build:
+    @echo "🔨 Initializing Dagger development environment"
     @dagger develop
-    @echo "🔍 Inspecting the available functions"
+    @echo "📋 Building Dagger pipeline"
     @dagger functions
-    @echo "🔍 Running the function"
+
+# 🔨 Help for Dagger job
+[working-directory:'pipeline/infra']
+pipeline-job-help fn: (pipeline-infra-build)
+    @echo "🔨 Help for Dagger job: {{fn}}"
+    @dagger call {{fn}} --help
+
+# 🔨 Open an interactive development shell for the Infra pipeline
+[working-directory:'pipeline/infra']
+pipeline-infra-shell args="": (pipeline-infra-build)
+    @echo "🚀 Launching interactive terminal"
     @dagger call open-terminal {{args}}
 
-# 🔍 Run Dagger CI function
-[working-directory:'ci/ci-terragrunt']
-ci-shell:
-    @echo "🔍 Running Dagger CI for terragrunt"
-    @echo "🔍 Building the dagger module"
-    @dagger develop
-    @echo "🔍 Inspecting the available functions"
-    @dagger functions
-    @echo "🔍 Running the function"
-    @dagger
+# 🔨 Validate Terraform modules for best practices and security
+[working-directory:'pipeline/infra']
+pipeline-infra-tf-modules-static-check args="": (pipeline-infra-build)
+    @echo " Analyzing Terraform modules for security and best practices"
+    @echo "⚡ Running static analysis checks"
+    @dagger call job-tf-modules-static-check {{args}}
+    @echo "✅ Static analysis completed successfully"
 
-# aws_access_key_id := env("AWS_ACCESS_KEY_ID")
-# aws_secret_access_key := env("AWS_SECRET_ACCESS_KEY")
+# 🔨 Test Terraform modules against multiple provider versions
+[working-directory:'pipeline/infra']
+pipeline-infra-tf-modules-versions args="": (pipeline-infra-build)
+    @echo " Testing module compatibility across provider versions"
+    @echo "⚡ Running version compatibility checks"
+    @dagger call job-tf-modules-compatibility-check {{args}}
+    @echo "✅ Version compatibility testing completed"
 
-# 🔍 Run Dagger CI function
-[working-directory:'ci/ci-terragrunt']
-ci-job-units-static-check env="global" layer="dni" unit="dni_generator":
-    @echo "🔍 Building the dagger module"
-    @dagger develop
-    @echo "🔍 Inspecting the available functions"
-    @dagger functions
-    @echo "🔍 Running the function"
-    @dagger call job-terragrunt-units-static-check \
-      --load-dot-env-file \
-      --no-cache \
-      --aws-access-key-id env://AWS_ACCESS_KEY_ID \
-      --aws-secret-access-key env://AWS_SECRET_ACCESS_KEY
+# 🔨 Run comprehensive CI checks for Terraform modules
+pipeline-infra-tf-ci args="": (pipeline-infra-tf-modules-static-check) (pipeline-infra-tf-modules-versions)
 
-# 🔍 Run Dagger CI function
-[working-directory:'ci/ci-terragrunt']
-ci-job-units-plan env="global" layer="dni" unit="dni_generator":
-    @echo "🔍 Building the dagger module"
-    @dagger develop
-    @echo "🔍 Inspecting the available functions"
-    @dagger functions
-    @echo "🔍 Running the function"
-    @dagger call job-terragrunt-units-plan \
-      --load-dot-env-file \
-      --no-cache \
-      --aws-access-key-id env://AWS_ACCESS_KEY_ID \
-      --aws-secret-access-key env://AWS_SECRET_ACCESS_KEY
+# 🔨 Run a Terragrunt job with custom arguments
+[working-directory:'pipeline/infra']
+pipeline-infra-tg-exec args="": (pipeline-infra-build)
+    @echo "🔨 Running Terragrunt single command through Dagger"
+    @dagger call job-tg-exec {{args}}
 
-[working-directory:'ci/ci-terragrunt']
-ci-job-tfmodules-static-check:
-    @echo "🔍 Building the dagger module"
-    @dagger develop
-    @echo "🔍 Inspecting the available functions"
-    @dagger functions
-    @echo "🔍 Running the function"
-    @dagger call job-terraform-modules-static-check
+# 🔨 Run a Terragrunt job with custom arguments
+[working-directory:'pipeline/infra']
+pipeline-infra-tg-ci-static env="global" stack="dni": (pipeline-infra-build)
+    @echo "🔄 Running Terragrunt CI checks through Dagger"
+    @echo "🌍 Environment: {{env}} | 📚 Stack: {{stack}}"
+    @dagger call job-citg-stack-static-analysis \
+        --aws-region eu-west-1 \
+        --aws-access-key-id env:AWS_ACCESS_KEY_ID \
+        --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
+        --load-dot-env \
+        --no-cache \
+        --environment "{{env}}" \
+        --stack "{{stack}}"
 
-dev:
-    @echo "🌿 Starting Nix Development Shell for Terraform Registry Module Template 🏷️"
-    @nix develop . --impure --extra-experimental-features nix-command --extra-experimental-features flakes
+    @echo "✅ Terragrunt CI checks completed successfully on environment: {{env}} | 📚 Stack: {{stack}}"

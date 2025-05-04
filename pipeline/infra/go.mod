@@ -1,6 +1,6 @@
-module dagger/terragrunt
+module dagger/infra
 
-go 1.23.6
+go 1.23.8
 
 require (
 	github.com/99designs/gqlgen v0.17.70

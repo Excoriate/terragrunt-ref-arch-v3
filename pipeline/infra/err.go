@@ -8,7 +8,7 @@ import (
 
 // Constants for module name and emoji representations for different types of messages.
 const (
-	ModuleName = "CI Terragrunt"
+	ModuleName = "Infra Pipeline"
 	ErrorEmoji = "❌"
 )
 

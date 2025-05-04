@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"dagger/terragrunt/internal/dagger"
+	"dagger/infra/internal/dagger"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -13,19 +13,18 @@ import (
 
 const (
 	// Default version for binaries
-	defaultTerraformVersion  = "1.10.1"
-	defaultTerragruntVersion = "0.77.7"
+	defaultTerraformVersion  = "1.11.3"
+	defaultTerragruntVersion = "0.78.0"
 	defaultImage             = "alpine"
 	defaultImageTag          = "3.21.3"
 	defaultMntPath           = "/mnt"
 	defaultBinary            = "terragrunt"
 	// Default Ref-Arch configuration details
-	// TODO: change this later, according to your specific architecture.
-	defaultRefArchEnv    = "global"
-	defaulttRefArchLayer = "dni"
-	defaulttRefArchUnit  = "dni_generator"
+	defaultRefArchEnv    = "dev"
+	defaulttRefArchLayer = "non-distributable"
+	defaulttRefArchUnit  = "random-string-generator"
 	// Default for AWS
-	defaultAWSRegion              = "us-east-1"
+	defaultAWSRegion              = "eu-west-1"
 	defaultAWSOidcTokenSecretName = "AWS_OIDC_TOKEN"
 	// Configuration
 	configRefArchRootPath                  = "infra/terragrunt"
@@ -39,7 +38,7 @@ const (
 // a tool for managing Terraform configurations. This struct can be extended with methods
 // that perform various tasks such as executing commands in containers, managing directories,
 // and other functionalities that facilitate the use of Terragrunt in a Dagger pipeline.
-type Terragrunt struct {
+type Infra struct {
 	// Ctr is a Dagger container that can be used to run Terragrunt commands
 	Ctr *dagger.Container
 
@@ -74,16 +73,16 @@ func New(
 	// srcDir is the directory to mount as the source code.
 	// +optional
 	// +defaultPath="/"
-	// +ignore=["*", "!**/*.hcl", "!**/*.tfvars", "!**/.git/**", "!**/*.tfvars.json", "!**/*.tf", "!*.env", "!*.envrc", "!*.envrc"]
+	// +ignore=["*", "!**/*.hcl", "!**/*.tfvars", "!**/.git/**", "!**/*.tfvars.json", "!**/*.tf", "!*.env"]
 	srcDir *dagger.Directory,
 
 	// EnvVars are the environment variables that will be used to run the Terragrunt commands.
 	//
 	// +optional
 	envVars []string,
-) (*Terragrunt, error) {
+) (*Infra, error) {
 	if ctr != nil {
-		mod := &Terragrunt{Ctr: ctr}
+		mod := &Infra{Ctr: ctr}
 		mod, enVarError := mod.WithEnvVars(envVars)
 		if enVarError != nil {
 			return nil, WrapErrorf(enVarError, "failed to initialise dagger module with environment variables")
@@ -101,7 +100,7 @@ func New(
 	}
 
 	if imageURL != "" {
-		mod := &Terragrunt{}
+		mod := &Infra{}
 		mod.Ctr = dag.Container().From(imageURL)
 		modWithSRC, modWithSRCError := mod.WithSRC(ctx, defaultMntPath, srcDir)
 		if modWithSRCError != nil {
@@ -120,7 +119,7 @@ func New(
 	}
 
 	// We'll use the binary that should be downloaded from its source, or github repository.
-	mod := &Terragrunt{}
+	mod := &Infra{}
 	if tfVersion == "" {
 		tfVersion = defaultTerraformVersion
 	}
@@ -163,7 +162,7 @@ func New(
 //
 // Returns:
 //   - The updated Terragrunt instance with common setup applied.
-func (m *Terragrunt) CommonSetup(tfVersion, tgVersion string) *Terragrunt {
+func (m *Infra) CommonSetup(tfVersion, tgVersion string) *Infra {
 	m = m.
 		WithGitPkgInstalled().
 		WithTerraform(tfVersion).
@@ -184,7 +183,7 @@ func (m *Terragrunt) CommonSetup(tfVersion, tgVersion string) *Terragrunt {
 // - loadEnvFiles: A boolean to load the environment files.
 // Returns:
 // - *dagger.Container: The terminal for the container.
-func (m *Terragrunt) OpenTerminal(
+func (m *Infra) OpenTerminal(
 	// ctx is the context for the operation.
 	// +optional
 	ctx context.Context,
@@ -219,7 +218,7 @@ func (m *Terragrunt) OpenTerminal(
 //
 // Returns:
 //   - The updated Terragrunt instance with source directory mounted
-func (m *Terragrunt) WithSRC(
+func (m *Infra) WithSRC(
 	// ctx is the context for the Dagger container.
 	ctx context.Context,
 	// workdir is the working directory to set in the container.
@@ -227,7 +226,7 @@ func (m *Terragrunt) WithSRC(
 	workdir string,
 	// dir is the directory to mount in the container.
 	dir *dagger.Directory,
-) (*Terragrunt, error) {
+) (*Infra, error) {
 	if workdir == "" {
 		workdir = defaultMntPath
 	} else {
@@ -255,9 +254,10 @@ func (m *Terragrunt) WithSRC(
 //
 // Returns:
 //   - The updated Terragrunt instance with Git installed
-func (m *Terragrunt) WithGitPkgInstalled() *Terragrunt {
+func (m *Infra) WithGitPkgInstalled() *Infra {
 	m.Ctr = m.Ctr.
-		WithExec([]string{"apk", "add", "git"})
+		WithExec([]string{"apk", "add", "git"}).
+		WithExec([]string{"apk", "add", "openssh"})
 
 	return m
 }
@@ -268,7 +268,7 @@ func (m *Terragrunt) WithGitPkgInstalled() *Terragrunt {
 //
 // Returns:
 //   - The updated Terragrunt instance with the plugin cache mounted
-func (m *Terragrunt) WithTerraformPluginCache() *Terragrunt {
+func (m *Infra) WithTerraformPluginCache() *Infra {
 	m.Ctr = m.Ctr.
 		WithExec([]string{"mkdir", "-p", configterraformPluginCachePath}).
 		WithExec([]string{"chmod", "755", configterraformPluginCachePath}).
@@ -284,7 +284,7 @@ func (m *Terragrunt) WithTerraformPluginCache() *Terragrunt {
 //
 // Returns:
 //   - The updated Terragrunt instance with the providers cache server enabled
-func (m *Terragrunt) WithTerragruntProvidersCacheServerEnabled() *Terragrunt {
+func (m *Infra) WithTerragruntProvidersCacheServerEnabled() *Infra {
 	m.Ctr = m.Ctr.
 		WithEnvVariable("TG_PROVIDER_CACHE", "1")
 
@@ -297,7 +297,7 @@ func (m *Terragrunt) WithTerragruntProvidersCacheServerEnabled() *Terragrunt {
 //
 // Returns:
 //   - The updated Terragrunt instance with the providers cache server disabled
-func (m *Terragrunt) WithTerragruntProvidersCacheServerDisabled() *Terragrunt {
+func (m *Infra) WithTerragruntProvidersCacheServerDisabled() *Infra {
 	m.Ctr = m.Ctr.
 		WithoutEnvVariable("TG_PROVIDER_CACHE").
 		WithEnvVariable("TG_PROVIDER_CACHE", "0")
@@ -314,11 +314,11 @@ func (m *Terragrunt) WithTerragruntProvidersCacheServerDisabled() *Terragrunt {
 //   - registries: A slice of strings representing the registries to cache providers from.
 //
 // Returns:
-//   - *Terragrunt: The updated Terragrunt instance with the extra registries to cache providers from.
-func (m *Terragrunt) WithRegistriesToCacheProvidersFrom(
+//   - *Infra: The updated Infra instance with the extra registries to cache providers from.
+func (m *Infra) WithRegistriesToCacheProvidersFrom(
 	// registries is a slice of strings representing the registries to cache providers from.
 	registries []string,
-) *Terragrunt {
+) *Infra {
 	defaultRegistries := []string{
 		"registry.terraform.io",
 		"registry.opentofu.org",
@@ -339,8 +339,8 @@ func (m *Terragrunt) WithRegistriesToCacheProvidersFrom(
 // This method sets the environment variable DAGGER_APT_CACHE_BUSTER to a unique value based on the current time.
 //
 // Returns:
-//   - The updated Terragrunt instance with the cache buster enabled
-func (m *Terragrunt) WithCacheBuster() *Terragrunt {
+//   - The updated Infra instance with the cache buster enabled
+func (m *Infra) WithCacheBuster() *Infra {
 	m.Ctr = m.Ctr.
 		WithEnvVariable("DAGGER_OPT_CACHE_BUSTER", fmt.Sprintf("%d", time.Now().Truncate(24*time.Hour).Unix()))
 
@@ -352,8 +352,8 @@ func (m *Terragrunt) WithCacheBuster() *Terragrunt {
 // This method sets up a cache directory for Terragrunt and mounts it into the container.
 //
 // Returns:
-//   - The updated Terragrunt instance with the cache mounted
-func (m *Terragrunt) WithTerragruntCache() *Terragrunt {
+//   - The updated Infra instance with the cache mounted
+func (m *Infra) WithTerragruntCache() *Infra {
 	m.Ctr = m.Ctr.
 		WithExec([]string{"mkdir", "-p", configterragruntCachePath}).
 		WithExec([]string{"chmod", "755", configterragruntCachePath}).
@@ -371,12 +371,15 @@ func (m *Terragrunt) WithTerragruntCache() *Terragrunt {
 //   - secrets: A slice of dagger.Secret instances to be mounted
 //
 // Returns:
-//   - The updated Terragrunt instance with secrets mounted
-func (m *Terragrunt) WithSecrets(ctx context.Context, secrets []*dagger.Secret) *Terragrunt {
+//   - The updated Infra instance with secrets mounted
+func (m *Infra) WithSecrets(ctx context.Context, secrets []*dagger.Secret) *Infra {
 	for _, secret := range secrets {
 		// FIXME: This is suitable when secrets are created within dagger. Assumming there's a name set.
 		secretName, _ := secret.Name(ctx)
-		m.Ctr = m.Ctr.WithSecretVariable(secretName, secret)
+
+		m.Ctr = m.
+			Ctr.
+			WithSecretVariable(secretName, secret)
 	}
 
 	return m
@@ -391,9 +394,9 @@ func (m *Terragrunt) WithSecrets(ctx context.Context, secrets []*dagger.Secret) 
 //   - envVars: A slice of environment variables in "KEY=VALUE" format
 //
 // Returns:
-//   - The updated Terragrunt instance with environment variables set
+//   - The updated Infra instance with environment variables set
 //   - An error if any environment variable is incorrectly formatted
-func (m *Terragrunt) WithEnvVars(envVars []string) (*Terragrunt, error) {
+func (m *Infra) WithEnvVars(envVars []string) (*Infra, error) {
 	envVarsDagger, err := getEnvVarsDaggerFromSlice(envVars)
 
 	if err != nil {
@@ -416,14 +419,14 @@ func (m *Terragrunt) WithEnvVars(envVars []string) (*Terragrunt, error) {
 //   - tokenValue: The value of the token to add to the container.
 //
 // Returns:
-//   - The updated Terragrunt instance with the token added
-func (m *Terragrunt) WithToken(ctx context.Context, tokenValue *dagger.Secret) *Terragrunt {
+//   - The updated Infra instance with the token added
+func (m *Infra) WithToken(ctx context.Context, tokenValue *dagger.Secret) *Infra {
 	return m.WithSecrets(ctx, []*dagger.Secret{tokenValue})
 }
 
 // WithTerraform sets the Terraform version to use and installs it.
 // It takes a version string as an argument and returns a pointer to a dagger.Container.
-func (m *Terragrunt) WithTerraform(version string) *Terragrunt {
+func (m *Infra) WithTerraform(version string) *Infra {
 	tfInstallationCmd := getTFInstallCmd(version)
 	m.Ctr = m.Ctr.
 		WithExec([]string{"/bin/sh", "-c", tfInstallationCmd}).
@@ -434,7 +437,7 @@ func (m *Terragrunt) WithTerraform(version string) *Terragrunt {
 
 // WithTerragrunt sets the Terragrunt version to use and installs it.
 // It takes a version string as an argument and returns a pointer to a dagger.Container.
-func (m *Terragrunt) WithTerragrunt(version string) *Terragrunt {
+func (m *Infra) WithTerragrunt(version string) *Infra {
 	tgInstallationCmd := getTerragruntInstallationCommand(version)
 	m.Ctr = m.Ctr.
 		WithExec([]string{"/bin/sh", "-c", tgInstallationCmd}).
@@ -446,10 +449,10 @@ func (m *Terragrunt) WithTerragrunt(version string) *Terragrunt {
 // WithNewNetrcFileGitHub creates a new .netrc file with the GitHub credentials.
 //
 // The .netrc file is created in the root directory of the container.
-func (m *Terragrunt) WithNewNetrcFileGitHub(
+func (m *Infra) WithNewNetrcFileGitHub(
 	username string,
 	password string,
-) *Terragrunt {
+) *Infra {
 	machineCMD := "machine github.com\nlogin " + username + "\npassword " + password + "\n"
 
 	m.Ctr = m.Ctr.WithNewFile(configNetrcRootPath, machineCMD)
@@ -461,7 +464,7 @@ func (m *Terragrunt) WithNewNetrcFileGitHub(
 //
 // The .netrc file is created in the root directory of the container.
 // The argument 'password' is a secret that is not exposed in the logs.
-func (m *Terragrunt) WithNewNetrcFileAsSecretGitHub(username string, password *dagger.Secret) *Terragrunt {
+func (m *Infra) WithNewNetrcFileAsSecretGitHub(username string, password *dagger.Secret) *Infra {
 	passwordTxtValue, _ := password.Plaintext(context.Background())
 	machineCMD := fmt.Sprintf("machine github.com\nlogin %s\npassword %s\n", username, passwordTxtValue)
 	//nolint:exhaustruct // This is a method that is used to set the base image and version.
@@ -473,10 +476,10 @@ func (m *Terragrunt) WithNewNetrcFileAsSecretGitHub(username string, password *d
 // WithNewNetrcFileGitLab creates a new .netrc file with the GitLab credentials.
 //
 // The .netrc file is created in the root directory of the container.
-func (m *Terragrunt) WithNewNetrcFileGitLab(
+func (m *Infra) WithNewNetrcFileGitLab(
 	username string,
 	password string,
-) *Terragrunt {
+) *Infra {
 	machineCMD := "machine gitlab.com\nlogin " + username + "\npassword " + password + "\n"
 
 	m.Ctr = m.Ctr.WithNewFile(configNetrcRootPath, machineCMD)
@@ -488,7 +491,7 @@ func (m *Terragrunt) WithNewNetrcFileGitLab(
 //
 // The .netrc file is created in the root directory of the container.
 // The argument 'password' is a secret that is not exposed in the logs.
-func (m *Terragrunt) WithNewNetrcFileAsSecretGitLab(username string, password *dagger.Secret) *Terragrunt {
+func (m *Infra) WithNewNetrcFileAsSecretGitLab(username string, password *dagger.Secret) *Infra {
 	passwordTxtValue, _ := password.Plaintext(context.Background())
 	machineCMD := fmt.Sprintf("machine gitlab.com\nlogin %s\npassword %s\n", username, passwordTxtValue)
 
@@ -509,8 +512,8 @@ func (m *Terragrunt) WithNewNetrcFileAsSecretGitLab(username string, password *d
 //   - owner: Optional. The owner of the mounted socket in the container.
 //
 // Returns:
-//   - *Terragrunt: The updated Terragrunt instance with SSH authentication configured for Terraform modules.
-func (m *Terragrunt) WithSSHAuthSocket(
+//   - *Infra: The updated Infra instance with SSH authentication configured for Terraform modules.
+func (m *Infra) WithSSHAuthSocket(
 	// sshAuthSocket is the SSH socket to use for authentication.
 	sshAuthSocket *dagger.Socket,
 	// socketPath is the path where the SSH socket will be mounted in the container.
@@ -519,10 +522,16 @@ func (m *Terragrunt) WithSSHAuthSocket(
 	// owner is the owner of the mounted socket in the container. Optional parameter.
 	// +optional
 	owner string,
-) *Terragrunt {
+	// enableGitlabKnownHosts adds the Gitlab known hosts to the container.
+	// +optional
+	enableGitlabKnownHosts bool,
+	// enableGithubKnownHosts adds the Github known hosts to the container.
+	// +optional
+	enableGithubKnownHosts bool,
+) *Infra {
 	// Default the socket path if not provided
 	if socketPath == "" {
-		socketPath = "/ssh-agent.sock"
+		socketPath = "/var/run/host.sock"
 	}
 
 	socketOpts := dagger.ContainerWithUnixSocketOpts{}
@@ -531,8 +540,23 @@ func (m *Terragrunt) WithSSHAuthSocket(
 		socketOpts.Owner = owner
 	}
 
+	// Ensure .ssh directory exists before running ssh-keyscan
+	m.Ctr = m.Ctr.WithExec([]string{"mkdir", "-p", "/root/.ssh"})
+
+	if enableGitlabKnownHosts {
+		m.Ctr = m.Ctr.
+			WithExec([]string{"sh", "-c", "ssh-keyscan gitlab.com >> /root/.ssh/known_hosts"})
+	}
+
+	if enableGithubKnownHosts {
+		m.Ctr = m.Ctr.
+			WithExec([]string{"sh", "-c", "ssh-keyscan github.com >> /root/.ssh/known_hosts"})
+	}
+
 	m.Ctr = m.Ctr.
-		WithUnixSocket(socketPath, sshAuthSocket, socketOpts).
+		WithExec([]string{"chmod", "600", "/root/.ssh/known_hosts"})
+
+	m.Ctr = m.Ctr.WithUnixSocket(socketPath, sshAuthSocket, socketOpts).
 		WithEnvVariable("SSH_AUTH_SOCK", socketPath)
 
 	return m
@@ -550,8 +574,8 @@ func (m *Terragrunt) WithSSHAuthSocket(
 //   - awsRegion: The AWS region.
 //
 // Returns:
-//   - *Terragrunt: The updated Terragrunt instance with AWS credentials and region set
-func (m *Terragrunt) WithAWSKeys(
+//   - *Infra: The updated Infra instance with AWS credentials and region set
+func (m *Infra) WithAWSKeys(
 	// ctx is the context for the Dagger container.
 	// +optional
 	ctx context.Context,
@@ -562,7 +586,7 @@ func (m *Terragrunt) WithAWSKeys(
 	// awsRegion is the AWS region.
 	// +optional
 	awsRegion string,
-) *Terragrunt {
+) *Infra {
 	awsRegion = getDefaultAWSRegionIfNotSet(awsRegion)
 
 	m.Ctr = m.Ctr.
@@ -577,7 +601,7 @@ func (m *Terragrunt) WithAWSKeys(
 //
 // This method sets the AWS OIDC credentials in the container, making them available as environment variables.
 // It also mounts the AWS OIDC credentials as secrets into the container.
-func (m *Terragrunt) WithAWSOIDC(
+func (m *Infra) WithAWSOIDC(
 	// roleARN is the ARN of the IAM role to assume.
 	roleARN string,
 	// oidcToken is the Dagger Secret containing the OIDC JWT token from GitLab.
@@ -591,7 +615,7 @@ func (m *Terragrunt) WithAWSOIDC(
 	// awsRoleSessionName is an optional name for the assumed role session.
 	// +optional
 	awsRoleSessionName string,
-) *Terragrunt {
+) *Infra {
 	awsRegion = getDefaultAWSRegionIfNotSet(awsRegion)
 
 	if oidcTokenName == "" {
@@ -624,10 +648,9 @@ func (m *Terragrunt) WithAWSOIDC(
 //
 // Parameters:
 //   - ctx: The context for the Dagger container.
-func (m *Terragrunt) WithGitlabToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
+func (m *Infra) WithGitlabToken(ctx context.Context, token *dagger.Secret) *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("GITLAB_TOKEN", tokenTxtValue)
+		WithSecretVariable("GITLAB_TOKEN", token)
 
 	return m
 }
@@ -638,10 +661,9 @@ func (m *Terragrunt) WithGitlabToken(ctx context.Context, token *dagger.Secret) 
 //
 // Parameters:
 //   - ctx: The context for the Dagger container.
-func (m *Terragrunt) WithGitHubToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
+func (m *Infra) WithGitHubToken(ctx context.Context, token *dagger.Secret) *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("GITHUB_TOKEN", tokenTxtValue)
+		WithSecretVariable("GITHUB_TOKEN", token)
 
 	return m
 }
@@ -652,10 +674,10 @@ func (m *Terragrunt) WithGitHubToken(ctx context.Context, token *dagger.Secret) 
 //
 // Parameters:
 //   - ctx: The context for the Dagger container.
-func (m *Terragrunt) WithTerraformToken(ctx context.Context, token *dagger.Secret) *Terragrunt {
-	tokenTxtValue, _ := token.Plaintext(ctx)
+//   - token: The Terraform token to set.
+func (m *Infra) WithTerraformToken(ctx context.Context, token *dagger.Secret) *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("TF_TOKEN", tokenTxtValue)
+		WithSecretVariable("TF_TOKEN", token)
 
 	return m
 }
@@ -666,7 +688,7 @@ func (m *Terragrunt) WithTerraformToken(ctx context.Context, token *dagger.Secre
 //
 // Parameters:
 //   - level: The log level to set.
-func (m *Terragrunt) WithTerragruntLogLevel(level string) *Terragrunt {
+func (m *Infra) WithTerragruntLogLevel(level string) *Infra {
 	m.Ctr = m.Ctr.
 		WithEnvVariable("TERRAGRUNT_LOG_LEVEL", level)
 
@@ -679,7 +701,7 @@ func (m *Terragrunt) WithTerragruntLogLevel(level string) *Terragrunt {
 //
 // Parameters:
 //   - level: The log level to set.
-func (m *Terragrunt) WithTerragruntNonInteractive() *Terragrunt {
+func (m *Infra) WithTerragruntNonInteractive() *Infra {
 	m.Ctr = m.Ctr.
 		WithEnvVariable("TERRAGRUNT_NON_INTERACTIVE", "true")
 
@@ -692,7 +714,7 @@ func (m *Terragrunt) WithTerragruntNonInteractive() *Terragrunt {
 //
 // Parameters:
 //   - level: The log level to set.
-func (m *Terragrunt) WithTerragruntNoColor() *Terragrunt {
+func (m *Infra) WithTerragruntNoColor() *Infra {
 	m.Ctr = m.Ctr.
 		WithEnvVariable("TERRAGRUNT_NO_COLOR", "true")
 
@@ -714,9 +736,9 @@ func (m *Terragrunt) WithTerragruntNoColor() *Terragrunt {
 //   - src: Directory containing the .env files to process
 //
 // Returns:
-//   - *Terragrunt: The updated Terragrunt instance with environment variables set
+//   - *Infra: The updated Infra instance with environment variables set
 //   - error: An error if file reading or parsing fails
-func (m *Terragrunt) WithDotEnvFile(ctx context.Context, src *dagger.Directory) (*Terragrunt, error) {
+func (m *Infra) WithDotEnvFile(ctx context.Context, src *dagger.Directory) (*Infra, error) {
 	if src == nil {
 		return nil, NewError("failed to load .env file, the source directory is nil")
 	}
@@ -755,139 +777,50 @@ func (m *Terragrunt) WithDotEnvFile(ctx context.Context, src *dagger.Directory) 
 	return m, nil
 }
 
-// Exec executes a given command within a dagger container.
-// It returns the output of the command or an error if the command is invalid or fails to execute.
+// WithRemoteBackendConfiguration sets the remote backend configuration in the container.
 //
-//nolint:lll,cyclop // It's okay, since the ignore pattern is included
-func (m *Terragrunt) Exec(
-	// ctx is the context to use when executing the command.
-	// +optional
-	//nolint:contextcheck // It's okay, since the ignore pattern is included.
-	ctx context.Context,
-	// binary is the binary to execute, Possible and valid options are 'terragrunt', 'terraform'
-	// +optional
-	binary string,
-	// command is the terragrunt command to execute. It's the actual command that comes after 'terragrunt'
-	command string,
-	// args are the arguments to pass to the command.
-	// +optional
-	args []string,
-	// autoApprove is the flag to auto approve the command.
-	// +optional
-	autoApprove bool,
-	// src is the source directory that includes the source code.
-	src *dagger.Directory,
-	// tgExecutionPath is the path to the terragrunt unit to execute.
-	// +optional
-	tgExecutionPath string,
-	// envVars is the environment variables to pass to the container.
-	// +optional
-	envVars []string,
-	// secrets is the secrets to pass to the container.
-	// +optional
-	secrets []*dagger.Secret,
-	// tfToken is the Terraform registry token to pass to the container.
-	// +optional
-	tfToken *dagger.Secret,
-	// ghToken is the GitHub token to pass to the container.
-	// +optional
-	ghToken *dagger.Secret,
-	// glToken is the GitLab token to pass to the container.
-	// +optional
-	glToken *dagger.Secret,
-	// gitSshSocket is the Git SSH socket that can be forwarded from the host, to allow private git support through SSH
-	// +optional
-	gitSshSocket *dagger.Socket,
-	// printPaths is a boolean to print the paths of the mounted directories.
-	// +optional
-	printPaths bool,
-	// loadEnvFiles is a boolean to load the environment files.
-	// +optional
-	loadEnvFiles bool,
-	// tgOptLogLevel is the log level to set for the Terragrunt command.
-	// +optional
-	tgOptLogLevel string,
-	// tgOptNoColor is a boolean to set the Terragrunt no color option.
-	// +optional
-	tgOptNoColor bool,
-	// tgOptNonInteractive is a boolean to set the Terragrunt non interactive option.
-	// +optional
-	tgOptNonInteractive bool,
-) (*dagger.Container, error) {
-	cmdEntryPoint := getDefaultBinaryIfANotSet(binary)
+// This method sets the remote backend configuration in the container, making it available as environment variables.
+//
+// Parameters:
+//   - bucket: The name of the bucket to use for the remote backend.
+//   - locktable: The name of the lock table to use for the remote backend.
+func (m *Infra) WithRemoteBackendConfiguration(bucket, locktable string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_STACK_REMOTE_STATE_BUCKET_NAME", bucket).
+		WithEnvVariable("TG_STACK_REMOTE_STATE_LOCK_TABLE", locktable)
 
-	tgCmd := []string{cmdEntryPoint, command}
+	return m
+}
 
-	if len(args) > 0 {
-		tgCmd = append(tgCmd, args...)
-	}
+// WithoutTracingToDagger disables tracing to Dagger in the container.
+//
+// This method disables tracing to Dagger in the container, making it available as an environment variable.
+func (m *Infra) WithoutTracingToDagger() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("NOTHANKS", "1")
 
-	if autoApprove && (command == "apply" || command == "destroy") {
-		tgCmd = append(tgCmd, "--auto-approve")
-	}
+	return m
+}
 
-	if tgExecutionPath != "" && binary == "terragrunt" {
-		tgCmd = append(tgCmd, "--working-dir", tgExecutionPath)
-	}
+// WithTerragruntNoInteractive sets the Terragrunt no interactive option in the container.
+//
+// This method sets the Terragrunt no interactive option in the container, making it available as an environment variable.
+func (m *Infra) WithTerragruntNoInteractive() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_NON_INTERACTIVE", "true")
 
-	if binary == "terraform" {
-		m.Ctr = m.Ctr.
-			WithoutWorkdir().
-			WithWorkdir(filepath.Join(defaultMntPath, tgExecutionPath))
-	}
+	return m
+}
 
-	if envVars != nil {
-		modWithEnvVars, err := m.WithEnvVars(envVars)
+// WithTerraformGitlabToken sets the Terraform Gitlab token in the container.
+//
+// This method sets the Terraform Gitlab token in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - ctx: The context for the Dagger container.
+func (m *Infra) WithTerraformGitlabToken(ctx context.Context, token *dagger.Secret) *Infra {
+	m.Ctr = m.Ctr.
+		WithSecretVariable("TF_TOKEN_gitlab_com", token)
 
-		if err != nil {
-			return nil, WrapError(err, "failed to set the environment variables")
-		}
-
-		m = modWithEnvVars
-	}
-
-	if secrets != nil {
-		m = m.WithSecrets(ctx, secrets)
-	}
-
-	if tfToken != nil {
-		m = m.WithTerraformToken(ctx, tfToken)
-	}
-
-	if ghToken != nil {
-		m = m.WithGitHubToken(ctx, ghToken)
-	}
-
-	if glToken != nil {
-		m = m.WithGitlabToken(ctx, glToken)
-	}
-
-	if gitSshSocket != nil {
-		m = m.WithSSHAuthSocket(gitSshSocket, "/ssh-agent.sock", "root")
-	}
-
-	if tgOptLogLevel != "" {
-		m = m.WithTerragruntLogLevel(tgOptLogLevel)
-	}
-
-	if tgOptNoColor {
-		m = m.WithTerragruntNoColor()
-	}
-
-	if tgOptNonInteractive {
-		m = m.WithTerragruntNonInteractive()
-	}
-
-	if loadEnvFiles {
-		// At this point, m.Src is either the directory passed, or the one set at the constructor.
-		modWithDotEnvLoaded, err := m.WithDotEnvFile(ctx, m.Src)
-
-		if err != nil {
-			return nil, WrapError(err, "failed to load .env files")
-		}
-
-		m = modWithDotEnvLoaded
-	}
-
-	return m.Ctr.WithExec(tgCmd), nil
+	return m
 }

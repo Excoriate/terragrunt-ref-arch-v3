@@ -66,7 +66,8 @@ The project structure follows the pattern:
   - **Stack**: A collection of units.
     - **Unit**: A collection of terraform modules.
 
-> **NOTE**: Each layer is fully flexible, and can be changed to fit the needs of your project, or particular domain. E.g.: instead of environment, you could use a different layer to group the infrastructure by region, or by application.
+> [!NOTE]
+> Each layer is fully flexible, and can be changed to fit the needs of your project, or particular domain. E.g.: instead of environment, you could use a different layer to group the infrastructure by region, or by application.
 
 The project structure is as follows:
 
@@ -117,7 +118,8 @@ A sophisticated, secure environment variable management system powered by [diren
 
 Each `.envrc` file inherits from its parent using `source_up` and can override or extend variables as needed. This creates a clean, hierarchical configuration that's easy to manage and customize.
 
-> **NOTE**: Environment variables defined in child directories will override those from parent directories, allowing for precise customization at each level.
+> [!NOTE]
+> Environment variables defined in child directories will override those from parent directories, allowing for precise customization at each level.
 
 ### 🔧 Environment Setup
 
@@ -173,7 +175,8 @@ For a comprehensive list of supported environment variables, their descriptions,
 | | `TERRAGRUNT_AUTO_INIT` | Automatic Terragrunt initialization | `"true"` | Terragrunt Runtime |
 | | `TERRAGRUNT_AUTO_RETRY` | Automatic retry on failure | `"true"` | Terragrunt Runtime |
 
-*Note: Variables like `TG_ENVIRONMENT`, `TF_INPUT`, `PROJECT_ROOT`, `LANG`, `LC_ALL`, `DIRENV_LOG_FORMAT` etc., are typically set directly in the environment or via `.envrc` files and are not explicitly retrieved using `get_env()` within the shared Terragrunt HCL configuration files.*
+> [!NOTE]
+> Variables like `TG_ENVIRONMENT`, `TF_INPUT`, `PROJECT_ROOT`, `LANG`, `LC_ALL`, `DIRENV_LOG_FORMAT` etc., are typically set directly in the environment or via `.envrc` files and are not explicitly retrieved using `get_env()` within the shared Terragrunt HCL configuration files.
 
 #### Quick Environment Setup
 
@@ -182,7 +185,8 @@ For a comprehensive list of supported environment variables, their descriptions,
 3. Edit `.envrc` files to customize your environment
 4. Run `direnv allow` to load variables
 
-> **Pro Tip**: Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.
+> [!TIP]
+> Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.
 
 For more detailed information, consult the [Environment Variables Documentation](docs/environment-variables.md).
 
@@ -314,7 +318,8 @@ just tg-run-all-plan global dni
 
 ```
 
-More recipes are available in the [justfile](justfile) file.
+> [!TIP]
+> More recipes are available in the [justfile](justfile) file.
 
 ### Quick Setup
 
