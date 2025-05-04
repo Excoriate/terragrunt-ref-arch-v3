@@ -257,7 +257,8 @@ func (m *Terragrunt) WithSRC(
 //   - The updated Terragrunt instance with Git installed
 func (m *Terragrunt) WithGitPkgInstalled() *Terragrunt {
 	m.Ctr = m.Ctr.
-		WithExec([]string{"apk", "add", "git"})
+		WithExec([]string{"apk", "add", "git"}).
+		WithExec([]string{"apk", "add", "openssh"})
 
 	return m
 }
@@ -519,10 +520,16 @@ func (m *Terragrunt) WithSSHAuthSocket(
 	// owner is the owner of the mounted socket in the container. Optional parameter.
 	// +optional
 	owner string,
+	// enableGitlabKnownHosts adds the Gitlab known hosts to the container.
+	// +optional
+	enableGitlabKnownHosts bool,
+	// enableGithubKnownHosts adds the Github known hosts to the container.
+	// +optional
+	enableGithubKnownHosts bool,
 ) *Terragrunt {
 	// Default the socket path if not provided
 	if socketPath == "" {
-		socketPath = "/ssh-agent.sock"
+		socketPath = "/var/run/host.sock"
 	}
 
 	socketOpts := dagger.ContainerWithUnixSocketOpts{}
@@ -531,8 +538,23 @@ func (m *Terragrunt) WithSSHAuthSocket(
 		socketOpts.Owner = owner
 	}
 
+	// Ensure .ssh directory exists before running ssh-keyscan
+	m.Ctr = m.Ctr.WithExec([]string{"mkdir", "-p", "/root/.ssh"})
+
+	if enableGitlabKnownHosts {
+		m.Ctr = m.Ctr.
+			WithExec([]string{"sh", "-c", "ssh-keyscan gitlab.com >> /root/.ssh/known_hosts"})
+	}
+
+	if enableGithubKnownHosts {
+		m.Ctr = m.Ctr.
+			WithExec([]string{"sh", "-c", "ssh-keyscan github.com >> /root/.ssh/known_hosts"})
+	}
+
 	m.Ctr = m.Ctr.
-		WithUnixSocket(socketPath, sshAuthSocket, socketOpts).
+		WithExec([]string{"chmod", "600", "/root/.ssh/known_hosts"})
+
+	m.Ctr = m.Ctr.WithUnixSocket(socketPath, sshAuthSocket, socketOpts).
 		WithEnvVariable("SSH_AUTH_SOCK", socketPath)
 
 	return m
