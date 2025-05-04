@@ -9,20 +9,31 @@ on:
   workflow_dispatch:
 
 jobs:
-  tf_modules_static_check:
-    name: Terraform Modules Static Check
+  tf_modules_ci:
+    name: Terraform Modules Ci
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Terraform Modules Static Check
+      - name: Validate Terraform Modules Static Analysis
         uses: dagger/dagger-for-github@8.0.0
         with:
           version: "latest"
           verb: "call"
           module: pipeline/infra # Specifies the directory of the Dagger module
-          args: job-terraform-modules-static-check # Calls the specific Dagger function
+          args: job-tf-modules-static-check # Calls the specific Dagger function
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Validate Terraform Modules Compatibility
+        uses: dagger/dagger-for-github@8.0.0
+        with:
+          version: "latest"
+          verb: "call"
+          module: pipeline/infra # Specifies the directory of the Dagger module
+          args: job-tf-modules-compatibility-check # Calls the specific Dagger function
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -40,10 +51,8 @@ jobs:
           version: "latest"
           verb: "call"
           module: pipeline/infra
-          args: >-
-            job-citg-stack-static-analysis \ --aws-region ${{ env.DEFAULT_REGION }} \ --aws-access-key-id env:AWS_ACCESS_KEY_ID
-            \ --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \ --load-dot-env \ --no-cache \ --environment "global" \ --stack
-            "dni"
+          args: job-citg-stack-static-analysis --aws-region ${{ env.DEFAULT_REGION }} --aws-access-key-id env:AWS_ACCESS_KEY_ID
+            --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY --no-cache --environment "global" --stack "dni"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -66,11 +75,10 @@ jobs:
           version: "latest"
           verb: "call"
           module: pipeline/infra
-          args: >-
-            job-tg-exec \ --cmd=plan \ --layer=dni \ --unit=dni_generator \ --aws-access-key-id=env://AWS_ACCESS_KEY_ID \
-            --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY \ --backend-bucket=${{ secrets.TF_STATE_BUCKET }} \ --backend-locktable=${{
-            secrets.TF_STATE_LOCK_TABLE }} \ --deployment-region=${{ env.DEFAULT_REGION }} \ --env-vars="TG_NON_INTERACTIVE=$TG_NON_INTERACTIVE,TG_LOG_LEVEL=$TG_LOG_LEVEL"
-            \ --environment=global \ --no-cache
+          args: job-tg-exec --cmd=plan --layer=dni --unit=dni_generator --aws-access-key-id=env://AWS_ACCESS_KEY_ID --aws-secret-access-key=env://AWS_SECRET_ACCESS_KEY
+            --backend-bucket=${{ secrets.TF_STATE_BUCKET }} --backend-locktable=${{ secrets.TF_STATE_LOCK_TABLE }} --deployment-region=${{
+            env.DEFAULT_REGION }} --env-vars="TG_NON_INTERACTIVE=$TG_NON_INTERACTIVE,TG_LOG_LEVEL=$TG_LOG_LEVEL" --environment=global
+            --no-cache
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
