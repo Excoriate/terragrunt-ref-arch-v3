@@ -248,6 +248,9 @@ func (m *Infra) JobTgStack(
 	// tgCmdArgs is the arguments to run on the command.
 	// +optional
 	tgCmdArgs []string,
+	// gitlabToken is the Gitlab token.
+	// +optional
+	gitlabTfToken *dagger.Secret,
 ) (string, error) {
 	baseCtr, baseCtrErr := m.JobTg(ctx,
 		// TODO: add the remote state bucket and lock table
@@ -256,7 +259,7 @@ func (m *Infra) JobTgStack(
 		awsRegion,
 		awsAccessKeyID,
 		awsSecretAccessKey,
-		nil,
+		gitlabTfToken,
 		loadDotEnv,
 		noCache,
 		envVars,
