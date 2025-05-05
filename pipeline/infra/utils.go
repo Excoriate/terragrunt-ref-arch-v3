@@ -71,6 +71,18 @@ func getTerragruntExecutionPath(env, layer, unit string) string {
 	return filepath.Join(configRefArchRootPath, env, layer, unit)
 }
 
+func getTerragruntExecutionPathForStacks(env, layer string) string {
+	if env == "" {
+		env = defaultRefArchEnv
+	}
+
+	if layer == "" {
+		layer = defaulttRefArchLayer
+	}
+
+	return filepath.Join(configRefArchRootPath, env, layer)
+}
+
 func getTerraformModulesExecutionPath(moduleName string) string {
 	return filepath.Join(configRefArchATerraformModulesRootPath, moduleName)
 }
