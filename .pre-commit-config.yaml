@@ -42,6 +42,11 @@ repos:
     hooks:
       - id: yamlfmt
         args: [--conf, .yamlfmt.yml] # Point to the root config file
+        exclude: >
+          (?x)^(
+            \.github/workflows/dagger-ci\.yml
+          )$
+        # End of Selection
 
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.37.1 # Keep existing or update if needed
