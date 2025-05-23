@@ -247,10 +247,14 @@ pipeline-infra-tg-stack env="dev" stack="non-distributable" tg-cmd="validate" tg
     @echo "🔨 Terragrunt command: {{tg-cmd}}"
     @echo "🔨 Terragrunt command arguments: {{tg-cmd-args}}"
     @dagger call job-tg-stack \
-        --aws-region eu-west-1 \
         --aws-access-key-id env:AWS_ACCESS_KEY_ID \
         --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
-        --load-dot-env \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
         --no-cache \
         --environment "{{env}}" \
         --stack "{{stack}}" \
@@ -259,3 +263,33 @@ pipeline-infra-tg-stack env="dev" stack="non-distributable" tg-cmd="validate" tg
         --tg-cmd-args "{{tg-cmd-args}}"
 
     @echo "✅ Terragrunt stack completed successfully on environment: {{env}} | 📚 Stack: {{stack}}"
+
+pipeline-infra-tg-stack-exec-non-distributable-global-plan : (pipeline-infra-tg-stack "global" "non-distributable" "plan" "")
+pipeline-infra-tg-stack-exec-non-distributable-global-apply : (pipeline-infra-tg-stack "global" "non-distributable" "apply" "")
+pipeline-infra-tg-stack-exec-non-distributable-global-destroy : (pipeline-infra-tg-stack "global" "non-distributable" "destroy" "")
+
+# 🔨 Run a Terragrunt CD pipeline for the stack non-distributable
+[working-directory:'pipeline/infra']
+pipeline-infra-tg-cd-stack-non-distributable env="dev" action="plan": (pipeline-infra-build)
+    @echo "🔄 Running Terragrunt CD pipeline through Dagger"
+    @echo "🌍 Environment: {{env}} | 📚 Stack: non-distributable"
+    @echo "⚙️ Run Action: {{action}}"
+    @dagger call job-cdtg-stack-non-distributable \
+        --aws-access-key-id env:AWS_ACCESS_KEY_ID \
+        --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
+        --no-cache \
+        --environment "{{env}}" \
+        --run-{{action}} \
+        --git-ssh $SSH_AUTH_SOCK
+
+    @echo "✅ Terragrunt CD pipeline completed successfully on environment: {{env}} | 📚 Stack: non-distributable"
+
+pipeline-infra-tg-cd-stack-non-distributable-global-apply : (pipeline-infra-tg-cd-stack-non-distributable "global" "apply")
+pipeline-infra-tg-cd-stack-non-distributable-global-destroy: (pipeline-infra-tg-cd-stack-non-distributable "global" "destroy")
+pipeline-infra-tg-cd-stack-non-distributable-global-plan : (pipeline-infra-tg-cd-stack-non-distributable "global" "plan")
