@@ -117,21 +117,21 @@ locals {
 # of infrastructure components.
 
 dependency "age_generator" {
-  config_path = "${find_in_parent_folders("dni/age_generator")}"
+  config_path = "${find_in_parent_folders("dni/age-generator")}"
   mock_outputs = {
     generated_age = 30
   }
 }
 
 dependency "name_generator" {
-  config_path = "${find_in_parent_folders("dni/name_generator")}"
+  config_path = "${find_in_parent_folders("dni/name-generator")}"
   mock_outputs = {
     full_name = "john-abc123"
   }
 }
 
 dependency "lastname_generator" {
-  config_path = "${find_in_parent_folders("dni/lastname_generator")}"
+  config_path = "${find_in_parent_folders("dni/lastname-generator")}"
   mock_outputs = {
     full_lastname = "smith-xyz789"
   }
@@ -139,9 +139,9 @@ dependency "lastname_generator" {
 
 dependencies {
   paths = [
-    "${find_in_parent_folders("dni/age_generator")}",
-    "${find_in_parent_folders("dni/name_generator")}",
-    "${find_in_parent_folders("dni/lastname_generator")}"
+    "${find_in_parent_folders("dni/age-generator")}",
+    "${find_in_parent_folders("dni/name-generator")}",
+    "${find_in_parent_folders("dni/lastname-generator")}"
   ]
 }
 
