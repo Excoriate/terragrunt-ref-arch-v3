@@ -106,12 +106,12 @@ func (m *Infra) JobTgExec(
 	// Context is the context for managing the operation's lifecycle
 	// +optional
 	ctx context.Context,
-	// backendBucket is the name of the bucket to use for the remote backend.
+	// remoteBemoteBackendBucket is the name of the bucket to use for the remote backend.
 	// +optional
-	backendBucket string,
-	// backendLocktable is the name of the lock table to use for the remote backend.
+	remoteBackendBucket string,
+	// remoteBemoteBackendLocktable is the name of the lock table to use for the remote backend.
 	// +optional
-	backendLocktable string,
+	remoteBackendLocktable string,
 	// deploymentRegion is the AWS region to use for the remote backend.
 	// +optional
 	deploymentRegion string,
@@ -157,8 +157,8 @@ func (m *Infra) JobTgExec(
 ) (string, error) {
 	// Getting the base container
 	jobTgCtrBase, jobTgErr := m.JobTg(ctx,
-		backendBucket,
-		backendLocktable,
+		remoteBackendBucket,
+		remoteBackendLocktable,
 		deploymentRegion,
 		awsAccessKeyID,
 		awsSecretAccessKey,
