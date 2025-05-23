@@ -56,12 +56,12 @@ jobs:
           module: pipeline/infra
           args: >-
             job-citg-stack-static-analysis
-            --deployment-region "${{ env.DEFAULT_REGION }}"
+            --deployment-region env:DEFAULT_REGION
             --aws-access-key-id env:AWS_ACCESS_KEY_ID
             --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY
-            --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}"
-            --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}"
-            --remote-state-region "${{ env.DEFAULT_REGION }}"
+            --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME
+            --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE
+            --remote-state-region env:TG_STACK_REMOTE_STATE_REGION
             --environment "global"
             --stack "dni"
             --no-cache
@@ -74,6 +74,7 @@ jobs:
           TG_LOG_LEVEL: "info"
           TG_STACK_REMOTE_STATE_BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }}
           TG_STACK_REMOTE_STATE_LOCK_TABLE: ${{ secrets.TF_STATE_LOCK_TABLE }}
+          TG_STACK_REMOTE_STATE_REGION: "us-east-1"
 
   tg_units_plan:
     name: Terragrunt Units Plan
@@ -95,10 +96,10 @@ jobs:
             --unit "dni-generator"
             --aws-access-key-id env:AWS_ACCESS_KEY_ID
             --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY
-            --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}"
-            --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}"
-            --remote-state-region "${{ env.DEFAULT_REGION }}"
-            --deployment-region "${{ env.DEFAULT_REGION }}"
+            --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME
+            --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE
+            --remote-state-region env:TG_STACK_REMOTE_STATE_REGION
+            --deployment-region env:DEFAULT_REGION
             --environment "global"
             --no-cache
             --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info"
@@ -110,3 +111,4 @@ jobs:
           TG_LOG_LEVEL: "info"
           TG_STACK_REMOTE_STATE_BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }}
           TG_STACK_REMOTE_STATE_LOCK_TABLE: ${{ secrets.TF_STATE_LOCK_TABLE }}
+          TG_STACK_REMOTE_STATE_REGION: "us-east-1"
