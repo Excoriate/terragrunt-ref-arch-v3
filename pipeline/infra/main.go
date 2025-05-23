@@ -14,7 +14,7 @@ import (
 const (
 	// Default version for binaries
 	defaultTerraformVersion  = "1.11.3"
-	defaultTerragruntVersion = "0.78.0"
+	defaultTerragruntVersion = "0.80.2"
 	defaultImage             = "alpine"
 	defaultImageTag          = "3.21.3"
 	defaultMntPath           = "/mnt"
@@ -26,12 +26,18 @@ const (
 	// Default for AWS
 	defaultAWSRegion              = "eu-west-1"
 	defaultAWSOidcTokenSecretName = "AWS_OIDC_TOKEN"
+	// TODO: Change this to the actual region based on your own convention
+	defaultRemoteStateRegion = "us-east-1"
 	// Configuration
 	configRefArchRootPath                  = "infra/terragrunt"
 	configRefArchATerraformModulesRootPath = "infra/terraform/modules"
 	configterraformPluginCachePath         = "/root/.terraform.d/plugin-cache"
 	configterragruntCachePath              = "/root/.terragrunt-cache"
 	configNetrcRootPath                    = "/root/.netrc"
+	// tfConfig
+	// TODO: Change this to the actual bucket and lock table names
+	remoteStateDefaultBucketNamingConvention    = "terraform-state-makemyinfra"
+	remoteStateDefaultLockTableNamingConvention = "terraform-state-makemyinfra"
 )
 
 // Terragrunt represents a structure that encapsulates operations related to Terragrunt,

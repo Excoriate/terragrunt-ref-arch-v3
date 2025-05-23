@@ -9,9 +9,9 @@ TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 
 # 📍 Default values for Terragrunt environment, stack, and unit
 # TODO: Change it accordingly to the environment, stack, and unit you are working on
-DEFAULT_TG_ENV := "global"
-DEFAULT_TG_STACK := "dni"
-DEFAULT_TG_UNIT := "dni_generator"
+# 📍 Terragrunt default(s)
+TG_DEFAULT_STACK := "non-distributable"
+TG_DEFAULT_UNIT := "random-string-generator"
 
 # 🐚 Shell configuration
 # Use bash with strict error handling to prevent silent failures

@@ -13,10 +13,10 @@ locals {
   # will inherit the base URLs.
   # ---------------------------------------------------------------------------------------------------------------------
   git_base_urls = {
-    github_ssh = "git::git@github.com:"
+    github_ssh   = "git::git@github.com:"
     github_https = "git::https://github.com/"
-    gitlab_ssh = "git::git@gitlab.com:"
+    gitlab_ssh   = "git::git@gitlab.com:"
     gitlab_https = "git::https://gitlab.com/"
-    local  = "${get_repo_root()}/infra/terraform/modules"
+    local        = "${get_repo_root()}/infra/terraform/modules"
   }
 }

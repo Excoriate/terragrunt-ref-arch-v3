@@ -10,12 +10,15 @@ func (m *Infra) JobTg(
 	// Context is the context for managing the operation's lifecycle
 	// +optional
 	ctx context.Context,
-	// backendBucket is the name of the bucket to use for the remote backend.
+	// remoteStateBucket is the name of the bucket to use for the remote backend.
 	// +optional
-	backendBucket string,
-	// backendLocktable is the name of the lock table to use for the remote backend.
+	remoteStateBucket string,
+	// remoteStateLockTable is the name of the lock table to use for the remote backend.
 	// +optional
-	backendLocktable string,
+	remoteStateLockTable string,
+	// remoteStateRegion is the region of the remote state bucket.
+	// +optional
+	remoteStateRegion string,
 	// deploymentRegion is the AWS region to use for the remote backend.
 	// +optional
 	deploymentRegion string,
@@ -25,27 +28,39 @@ func (m *Infra) JobTg(
 	// awsSecretAccessKey is the AWS secret access key.
 	// +optional
 	awsSecretAccessKey *dagger.Secret,
+	// awsSessionToken is the AWS session token.
+	// +optional
+	awsSessionToken *dagger.Secret,
 	// tfGitlabToken is the Terraform Gitlab token.
 	// +optional
 	tfGitlabToken *dagger.Secret,
-	// loadDotEnv is a flag to enable source .env files from the local directory.
+	// GitHubToken is the github token
 	// +optional
-	loadDotEnv bool,
+	GitHubToken *dagger.Secret,
+	// loadDotEnvFile is a flag to enable source .env files from the local directory.
+	// +optional
+	loadDotEnvFile bool,
 	// NoCache is a flag to disable caching of the container.
 	// +optional
 	noCache bool,
 	// envVars are the environment variables to set in the container.
 	// +optional
 	envVars []string,
-	// tgVersionOverride is the Terragrunt version to use.
+	// tgBinaryVersionOverride is the Terragrunt binary version to use.
 	// +optional
-	tgVersionOverride string,
-	// tfVersionOverride is the Terraform version to use.
+	tgBinaryVersionOverride string,
+	// tfBinaryVersionOverride is the Terraform binary version to use.
 	// +optional
-	tfVersionOverride string,
+	tfBinaryVersionOverride string,
+	// tfVersionFile is the Terraform version file to use. I'll generate a .terraform-version file in the working directory.
+	// +optional
+	tfVersionFile string,
 	// gitSSH is a flag to enable SSH for the container.
 	// +optional
 	gitSSH *dagger.Socket,
+	// tgLogLevel is the Terragrunt log level to use.
+	// +optional
+	tgLogLevel string,
 ) (*dagger.Container, error) {
 	if len(envVars) > 0 {
 		mWithEnvVars, err := m.WithEnvVars(envVars)
@@ -56,32 +71,54 @@ func (m *Infra) JobTg(
 		m = mWithEnvVars
 	}
 
-	if deploymentRegion == "" {
-		deploymentRegion = defaultAWSRegion
+	// No interactivity is mandatory, since it's a CI/CD pipeline.
+	m = m.WithTerragruntNonInteractive()
+
+	if deploymentRegion != "" {
+		m = m.WithTrragruntDeploymentRegion(deploymentRegion)
 	}
 
-	if tgVersionOverride != "" {
-		m = m.WithTerragrunt(tgVersionOverride)
+	if tgBinaryVersionOverride != "" {
+		m = m.WithTerragrunt(tgBinaryVersionOverride)
 	}
 
-	if tfVersionOverride != "" {
-		m = m.WithTerraform(tfVersionOverride)
+	if tfBinaryVersionOverride != "" {
+		m = m.WithTerraform(tfBinaryVersionOverride)
 	}
 
-	if backendBucket != "" && backendLocktable != "" {
-		m = m.
-			WithRemoteBackendConfiguration(backendBucket, backendLocktable)
+	if remoteStateBucket != "" && remoteStateLockTable != "" {
+		// Passing the region should be always optional, and shouldn't be considered a mandatory condition,
+		// hence, why I haven't included it as part of the condition statement.
+		m = m.WithRemoteBackendConfiguration(remoteStateBucket, remoteStateLockTable, remoteStateRegion)
+	}
+
+	if tfVersionFile != "" {
+		m = m.WithDotTerraformVersionFileGeneration(tfVersionFile)
 	}
 
 	if noCache {
 		m = m.WithCacheBuster()
 	}
 
+	if tgLogLevel != "" {
+		mDecorated, err := m.WithTerragruntLogLevel(tgLogLevel)
+		if err != nil {
+			return nil, WrapErrorf(err, "failed to run the job with log level %s", tgLogLevel)
+		}
+
+		m = mDecorated
+	}
+
 	if gitSSH != nil {
 		m = m.WithSSHAuthSocket(gitSSH, "", "", false, true)
 	}
 
-	if loadDotEnv {
+	// Mambu specific
+	//FIXME: This is very opinionated. Ensure you're adding here company-specific metadata, or configuration.
+	m = m.WithMambuMetadata().
+		WithoutTracingToDagger()
+
+	if loadDotEnvFile {
 		mDecorated, err := m.WithDotEnvFile(ctx, m.Src)
 		if err != nil {
 			return nil, WrapErrorf(err, "failed to source .env files from the local directory")
@@ -91,11 +128,15 @@ func (m *Infra) JobTg(
 	}
 
 	if awsAccessKeyID != nil && awsSecretAccessKey != nil {
-		m = m.WithAWSKeys(ctx, awsAccessKeyID, awsSecretAccessKey, deploymentRegion)
+		m = m.WithAWSKeys(ctx, awsAccessKeyID, awsSecretAccessKey, deploymentRegion, awsSessionToken)
 	}
 
 	if tfGitlabToken != nil {
 		m = m.WithTerraformGitlabToken(ctx, tfGitlabToken)
+	}
+
+	if GitHubToken != nil {
+		m = m.WithGitHubToken(ctx, GitHubToken)
 	}
 
 	return m.Ctr, nil
@@ -106,12 +147,15 @@ func (m *Infra) JobTgExec(
 	// Context is the context for managing the operation's lifecycle
 	// +optional
 	ctx context.Context,
-	// remoteBemoteBackendBucket is the name of the bucket to use for the remote backend.
+	// remoteStateBucket is the name of the bucket to use for the remote backend.
 	// +optional
-	remoteBackendBucket string,
-	// remoteBemoteBackendLocktable is the name of the lock table to use for the remote backend.
+	remoteStateBucket string,
+	// remoteStateLockTable is the name of the lock table to use for the remote backend.
 	// +optional
-	remoteBackendLocktable string,
+	remoteStateLockTable string,
+	// remoteStateRegion is the region of the remote state bucket.
+	// +optional
+	remoteStateRegion string,
 	// deploymentRegion is the AWS region to use for the remote backend.
 	// +optional
 	deploymentRegion string,
@@ -121,9 +165,15 @@ func (m *Infra) JobTgExec(
 	// awsSecretAccessKey is the AWS secret access key.
 	// +optional
 	awsSecretAccessKey *dagger.Secret,
+	// awsSessionToken is the AWS session token.
+	// +optional
+	awsSessionToken *dagger.Secret,
 	// tfGitlabToken is the Terraform Gitlab token.
 	// +optional
 	tfGitlabToken *dagger.Secret,
+	// GitHubToken is the github token
+	// +optional
+	GitHubToken *dagger.Secret,
 	// loadDotEnvFile is a flag to enable source .env files from the local directory.
 	// +optional
 	loadDotEnvFile bool,
@@ -133,9 +183,21 @@ func (m *Infra) JobTgExec(
 	// envVars are the environment variables to set in the container.
 	// +optional
 	envVars []string,
-	// tgVersion is the Terragrunt version to use.
+	// tgBinaryVersionOverride is the Terragrunt binary version to use.
 	// +optional
-	tgVersion string,
+	tgBinaryVersionOverride string,
+	// tfBinaryVersionOverride is the Terraform binary version to use.
+	// +optional
+	tfBinaryVersionOverride string,
+	// tfVersionFile is the Terraform version file to use. I'll generate a .terraform-version file in the working directory.
+	// +optional
+	tfVersionFile string,
+	// gitSSH is a flag to enable SSH for the container.
+	// +optional
+	gitSSH *dagger.Socket,
+	// tgLogLevel is the Terragrunt log level to use.
+	// +optional
+	tgLogLevel string,
 	// cmd is the command to execute on the container.
 	cmd []string,
 	// environment is the environment to use for the container.
@@ -145,30 +207,26 @@ func (m *Infra) JobTgExec(
 	layer string,
 	// unit is the unit to use for the container.
 	unit string,
-	// tgVersionOverride is the Terragrunt version to use.
-	// +optional
-	tgVersionOverride string,
-	// tfVersionOverride is the Terraform version to use.
-	// +optional
-	tfVersionOverride string,
-	// gitSSH is a flag to enable SSH for the container.
-	// +optional
-	gitSSH *dagger.Socket,
 ) (string, error) {
 	// Getting the base container
 	jobTgCtrBase, jobTgErr := m.JobTg(ctx,
-		remoteBackendBucket,
-		remoteBackendLocktable,
+		remoteStateBucket,
+		remoteStateLockTable,
+		remoteStateRegion,
 		deploymentRegion,
 		awsAccessKeyID,
 		awsSecretAccessKey,
+		awsSessionToken,
 		tfGitlabToken,
+		GitHubToken,
 		loadDotEnvFile,
 		noCache,
 		envVars,
-		tgVersionOverride,
-		tfVersionOverride,
+		tgBinaryVersionOverride,
+		tfBinaryVersionOverride,
+		tfVersionFile,
 		gitSSH,
+		tgLogLevel,
 	)
 
 	if jobTgErr != nil {
@@ -210,7 +268,9 @@ func (m *Infra) JobTgExec(
 //   - envVars: The environment variables that will be used to run the Terragrunt commands.
 //   - environment: The environment to run the Terragrunt commands.
 //   - gitSSH: A flag to enable SSH for the container.
-//   - tgCmds: The commands to run on the container.
+//   - tgCmd: The commands to run on the container.
+//   - tgCmdArgs: The arguments to run on the command.
+//   - gitlabToken: The Gitlab token.
 //
 // Returns:
 //   - string: The output of the Terragrunt commands.
@@ -218,54 +278,85 @@ func (m *Infra) JobTgStack(
 	// Context is the context for managing the operation's lifecycle
 	// +optional
 	ctx context.Context,
-	// stack is the stack name to check.
-	stack string,
-	// awsRegion is the AWS region to use for the remote backend.
+	// remoteStateBucket is the name of the bucket to use for the remote backend.
 	// +optional
-	awsRegion string,
+	remoteStateBucket string,
+	// remoteStateLockTable is the name of the lock table to use for the remote backend.
+	// +optional
+	remoteStateLockTable string,
+	// remoteStateRegion is the region of the remote state bucket.
+	// +optional
+	remoteStateRegion string,
+	// deploymentRegion is the AWS region to use for the remote backend.
+	// +optional
+	deploymentRegion string,
 	// awsAccessKeyID is the AWS access key ID.
 	// +optional
 	awsAccessKeyID *dagger.Secret,
 	// awsSecretAccessKey is the AWS secret access key.
 	// +optional
 	awsSecretAccessKey *dagger.Secret,
-	// loadDotEnv is a flag to enable source .env files from the local directory.
+	// awsSessionToken is the AWS session token.
 	// +optional
-	loadDotEnv bool,
+	awsSessionToken *dagger.Secret,
+	// tfGitlabToken is the Terraform Gitlab token.
+	// +optional
+	tfGitlabToken *dagger.Secret,
+	// GitHubToken is the github token
+	// +optional
+	GitHubToken *dagger.Secret,
+	// loadDotEnvFile is a flag to enable source .env files from the local directory.
+	// +optional
+	loadDotEnvFile bool,
 	// NoCache is a flag to disable caching of the container.
 	// +optional
 	noCache bool,
-	// envVars are the environment variables that will be used to run the Terragrunt commands.
+	// envVars are the environment variables to set in the container.
 	// +optional
 	envVars []string,
-	// environment is the environment to run the Terragrunt commands.
-	environment string,
+	// tgBinaryVersionOverride is the Terragrunt binary version to use.
+	// +optional
+	tgBinaryVersionOverride string,
+	// tfBinaryVersionOverride is the Terraform binary version to use.
+	// +optional
+	tfBinaryVersionOverride string,
+	// tfVersionFile is the Terraform version file to use. I'll generate a .terraform-version file in the working directory.
+	// +optional
+	tfVersionFile string,
 	// gitSSH is a flag to enable SSH for the container.
 	// +optional
 	gitSSH *dagger.Socket,
+	// tgLogLevel is the Terragrunt log level to use.
+	// +optional
+	tgLogLevel string,
 	// tgCmd is the command to run on the container.
 	tgCmd []string,
 	// tgCmdArgs is the arguments to run on the command.
 	// +optional
 	tgCmdArgs []string,
-	// gitlabToken is the Gitlab token.
-	// +optional
-	gitlabTfToken *dagger.Secret,
+	// stack is the stack name to check.
+	stack string,
+	// environment is the environment to use for the container.
+	environment string,
 ) (string, error) {
 	baseCtr, baseCtrErr := m.JobTg(ctx,
-		// TODO: add the remote state bucket and lock table
-		"",
-		"",
-		awsRegion,
+		remoteStateBucket,
+		remoteStateLockTable,
+		remoteStateRegion,
+		deploymentRegion,
 		awsAccessKeyID,
 		awsSecretAccessKey,
-		gitlabTfToken,
-		loadDotEnv,
+		awsSessionToken,
+		tfGitlabToken,
+		GitHubToken,
+		loadDotEnvFile,
 		noCache,
 		envVars,
-		"",
-		"",
+		tgBinaryVersionOverride,
+		tfBinaryVersionOverride,
+		tfVersionFile,
 		gitSSH,
+		tgLogLevel,
 	)
 
 	if len(tgCmd) == 0 {

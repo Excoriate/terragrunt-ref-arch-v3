@@ -1,7 +1,7 @@
 ---
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0 # Updated rev for potentially newer hooks
+    rev: v5.0.0 # Updated rev for potentially newer hooks
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -44,7 +44,7 @@ repos:
         args: [--conf, .yamlfmt.yml] # Point to the root config file
 
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1 # Keep existing or update if needed
+    rev: v1.37.1 # Keep existing or update if needed
     hooks:
       - id: yamllint
         name: YAML Lint
@@ -52,7 +52,7 @@ repos:
         exclude: *readme_excludes # Exclude markdown files often containing YAML examples
 
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.25 # Keep existing or update if needed
+    rev: v0.1.29 # Keep existing or update if needed
     hooks:
       - id: shellcheck
       - id: terragrunt-hclfmt
