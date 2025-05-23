@@ -172,6 +172,7 @@ tg-run env stack unit cmd="init":
 tg-run-all env stack cmd="init":
     @cd {{env}}/{{stack}} && terragrunt run-all {{cmd}} $(if [ "{{cmd}}" = "apply" ] || [ "{{cmd}}" = "destroy" ]; then echo "--auto-approve"; fi)
 
+
 # 🔨 Build the Dagger pipeline
 [working-directory:'pipeline/infra']
 pipeline-infra-build:

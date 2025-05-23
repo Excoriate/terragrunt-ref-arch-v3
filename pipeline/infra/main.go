@@ -568,6 +568,24 @@ func (m *Infra) WithSSHAuthSocket(
 	return m
 }
 
+// WithTrragruntDeploymentRegion sets the Terragrunt deployment region in the container.
+//
+// This method sets the Terragrunt deployment region in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - region: The region to set.
+func (m *Infra) WithTrragruntDeploymentRegion(region string) *Infra {
+	if region == "" {
+		return m
+	}
+
+	region = strings.ToLower(region)
+
+	m.Ctr = m.Ctr.WithEnvVariable("TG_STACK_DEPLOYMENT_REGION", region)
+
+	return m
+}
+
 // WithAWSCredentials sets the AWS credentials and region in the container.
 //
 // This method sets the AWS credentials and region in the container, making them available as environment variables.
@@ -592,6 +610,9 @@ func (m *Infra) WithAWSKeys(
 	// awsRegion is the AWS region.
 	// +optional
 	awsRegion string,
+	// awsSessionToken is the AWS session token.
+	// +optional
+	awsSessionToken *dagger.Secret,
 ) *Infra {
 	awsRegion = getDefaultAWSRegionIfNotSet(awsRegion)
 
@@ -599,6 +620,11 @@ func (m *Infra) WithAWSKeys(
 		WithEnvVariable("AWS_REGION", awsRegion).
 		WithSecretVariable("AWS_ACCESS_KEY_ID", awsAccessKeyID).
 		WithSecretVariable("AWS_SECRET_ACCESS_KEY", awsSecretAccessKey)
+
+	if awsSessionToken != nil {
+		m.Ctr = m.Ctr.
+			WithSecretVariable("AWS_SESSION_TOKEN", awsSessionToken)
+	}
 
 	return m
 }
@@ -790,12 +816,65 @@ func (m *Infra) WithDotEnvFile(ctx context.Context, src *dagger.Directory) (*Inf
 // Parameters:
 //   - bucket: The name of the bucket to use for the remote backend.
 //   - locktable: The name of the lock table to use for the remote backend.
-func (m *Infra) WithRemoteBackendConfiguration(bucket, locktable string) *Infra {
+//   - region: The region of the remote state bucket.
+//
+// +optional
+func (m *Infra) WithRemoteBackendConfiguration(bucket, locktable, region string) *Infra {
+	if region == "" {
+		region = defaultRemoteStateRegion
+	}
+
 	m.Ctr = m.Ctr.
 		WithEnvVariable("TG_STACK_REMOTE_STATE_BUCKET_NAME", bucket).
-		WithEnvVariable("TG_STACK_REMOTE_STATE_LOCK_TABLE", locktable)
+		WithEnvVariable("TG_STACK_REMOTE_STATE_LOCK_TABLE", locktable).
+		WithEnvVariable("TG_STACK_REMOTE_STATE_REGION", region)
 
 	return m
+}
+
+// WithDotTerraformVersionFileGeneration sets the Terragrunt dot terraform version file generation in the container.
+//
+// This method sets the Terragrunt dot terraform version file generation in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - tfVersion: The Terraform version to set.
+func (m *Infra) WithDotTerraformVersionFileGeneration(tfVersion string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE", "true").
+		WithEnvVariable("TG_STACK_TF_VERSION", tfVersion)
+
+	return m
+}
+
+// WithTerragruntLogLevel sets the Terragrunt log level in the container.
+//
+// This method sets the Terragrunt log level in the container, making it available as an environment variable.
+//
+// Parameters:
+//   - level: The log level to set.
+func (m *Infra) WithTerragruntLogLevelProgramatically(level string) (*Infra, error) {
+	validLevels := map[string]bool{
+		"stderr": true,
+		"stdout": true,
+		"error":  true,
+		"warn":   true,
+		"info":   true,
+		"debug":  true,
+		"trace":  true,
+	}
+
+	if level == "" {
+		level = "info"
+	}
+
+	if !validLevels[level] {
+		return nil, NewError(fmt.Sprintf("Invalid Terragrunt log level: %s. Must be one of: stderr, stdout, error, warn, info, debug, trace", level))
+	}
+
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_LOG_LEVEL", level)
+
+	return m, nil
 }
 
 // WithoutTracingToDagger disables tracing to Dagger in the container.

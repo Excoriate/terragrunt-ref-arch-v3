@@ -101,7 +101,7 @@ func (m *Infra) JobTg(
 	}
 
 	if tgLogLevel != "" {
-		mDecorated, err := m.WithTerragruntLogLevel(tgLogLevel)
+		mDecorated, err := m.WithTerragruntLogLevelProgramatically(tgLogLevel)
 		if err != nil {
 			return nil, WrapErrorf(err, "failed to run the job with log level %s", tgLogLevel)
 		}
@@ -112,11 +112,6 @@ func (m *Infra) JobTg(
 	if gitSSH != nil {
 		m = m.WithSSHAuthSocket(gitSSH, "", "", false, true)
 	}
-
-	// Mambu specific
-	//FIXME: This is very opinionated. Ensure you're adding here company-specific metadata, or configuration.
-	m = m.WithMambuMetadata().
-		WithoutTracingToDagger()
 
 	if loadDotEnvFile {
 		mDecorated, err := m.WithDotEnvFile(ctx, m.Src)
