@@ -334,8 +334,8 @@ func (m *Infra) WithRegistriesToCacheProvidersFrom(
 	registryNames := strings.Join(registries, ",")
 
 	m.Ctr = m.Ctr.
-		WithoutEnvVariable("TERRAGRUNT_PROVIDER_CACHE_REGISTRY_NAMES").
-		WithEnvVariable("TERRAGRUNT_PROVIDER_CACHE_REGISTRY_NAMES", registryNames)
+		WithoutEnvVariable("TG_PROVIDER_CACHE_REGISTRY_NAMES").
+		WithEnvVariable("TG_PROVIDER_CACHE_REGISTRY_NAMES", registryNames)
 
 	return m
 }
@@ -696,7 +696,7 @@ func (m *Infra) WithTerraformToken(ctx context.Context, token *dagger.Secret) *I
 //   - level: The log level to set.
 func (m *Infra) WithTerragruntLogLevel(level string) *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("TERRAGRUNT_LOG_LEVEL", level)
+		WithEnvVariable("TG_LOG_LEVEL", level)
 
 	return m
 }
@@ -709,7 +709,7 @@ func (m *Infra) WithTerragruntLogLevel(level string) *Infra {
 //   - level: The log level to set.
 func (m *Infra) WithTerragruntNonInteractive() *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("TERRAGRUNT_NON_INTERACTIVE", "true")
+		WithEnvVariable("TG_NON_INTERACTIVE", "true")
 
 	return m
 }
@@ -722,7 +722,7 @@ func (m *Infra) WithTerragruntNonInteractive() *Infra {
 //   - level: The log level to set.
 func (m *Infra) WithTerragruntNoColor() *Infra {
 	m.Ctr = m.Ctr.
-		WithEnvVariable("TERRAGRUNT_NO_COLOR", "true")
+		WithEnvVariable("TG_NO_COLOR", "true")
 
 	return m
 }
@@ -827,6 +827,184 @@ func (m *Infra) WithTerragruntNoInteractive() *Infra {
 func (m *Infra) WithTerraformGitlabToken(ctx context.Context, token *dagger.Secret) *Infra {
 	m.Ctr = m.Ctr.
 		WithSecretVariable("TF_TOKEN_gitlab_com", token)
+
+	return m
+}
+
+// WithTerragruntParallelism sets the parallelism level for Terragrunt operations.
+//
+// This method controls the number of units that are run concurrently during *-all commands.
+//
+// Parameters:
+//   - parallelism: The number of concurrent operations to allow
+func (m *Infra) WithTerragruntParallelism(parallelism int) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_PARALLELISM", fmt.Sprintf("%d", parallelism))
+
+	return m
+}
+
+// WithTerragruntNoAutoInit disables automatic initialization of Terraform.
+//
+// This method prevents Terragrunt from automatically running terraform init
+// when other commands are executed.
+func (m *Infra) WithTerragruntNoAutoInit() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_NO_AUTO_INIT", "true")
+
+	return m
+}
+
+// WithTerragruntNoAutoApprove disables automatic approval for Terragrunt operations.
+//
+// This method prevents Terragrunt from automatically appending -auto-approve
+// to underlying Terraform commands in *-all operations.
+func (m *Infra) WithTerragruntNoAutoApprove() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_NO_AUTO_APPROVE", "true")
+
+	return m
+}
+
+// WithTerragruntNoAutoRetry disables automatic retry of failed commands.
+//
+// This method prevents Terragrunt from automatically retrying commands
+// that fail with transient errors.
+func (m *Infra) WithTerragruntNoAutoRetry() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_NO_AUTO_RETRY", "true")
+
+	return m
+}
+
+// WithTerragruntInputsDebug enables inputs debug mode.
+//
+// This method enables debug mode for Terragrunt inputs, creating tfvars files
+// that can be used to invoke Terraform modules directly for debugging.
+func (m *Infra) WithTerragruntInputsDebug() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_INPUTS_DEBUG", "true")
+
+	return m
+}
+
+// WithTerragruntLogFormat sets the log format for Terragrunt output.
+//
+// This method sets the logging format for Terragrunt. Supported formats:
+// "pretty", "bare", "json", "key-value"
+//
+// Parameters:
+//   - format: The log format to use
+func (m *Infra) WithTerragruntLogFormat(format string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_LOG_FORMAT", format)
+
+	return m
+}
+
+// WithTerragruntLogDisable disables all Terragrunt logging.
+//
+// This method disables logging output from Terragrunt and automatically
+// enables Terraform stdout forwarding.
+func (m *Infra) WithTerragruntLogDisable() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_LOG_DISABLE", "true")
+
+	return m
+}
+
+// WithTerragruntLogShowAbsPaths enables absolute paths in log output.
+//
+// This method configures Terragrunt to show absolute paths in logs
+// instead of relative paths to the working directory.
+func (m *Infra) WithTerragruntLogShowAbsPaths() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_LOG_SHOW_ABS_PATHS", "true")
+
+	return m
+}
+
+// WithTerragruntBackendRequireBootstrap requires backend resources to be bootstrapped.
+//
+// This method configures Terragrunt to fail if remote state bucket creation
+// is necessary, requiring explicit bootstrap operations.
+func (m *Infra) WithTerragruntBackendRequireBootstrap() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_BACKEND_REQUIRE_BOOTSTRAP", "true")
+
+	return m
+}
+
+// WithTerragruntDisableBucketUpdate disables remote state bucket updates.
+//
+// This method prevents Terragrunt from updating the remote state bucket,
+// useful when the state bucket is managed by a third party.
+func (m *Infra) WithTerragruntDisableBucketUpdate() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_DISABLE_BUCKET_UPDATE", "true")
+
+	return m
+}
+
+// WithTerragruntDisableCommandValidation disables Terraform command validation.
+//
+// This method disables Terragrunt's validation of Terraform commands,
+// useful when using non-standard commands in hooks.
+func (m *Infra) WithTerragruntDisableCommandValidation() *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_DISABLE_COMMAND_VALIDATION", "true")
+
+	return m
+}
+
+// WithTerragruntProviderCacheDir sets a custom provider cache directory.
+//
+// This method sets the path to the Terragrunt provider cache directory.
+//
+// Parameters:
+//   - cacheDir: The path to the provider cache directory
+func (m *Infra) WithTerragruntProviderCacheDir(cacheDir string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_PROVIDER_CACHE_DIR", cacheDir)
+
+	return m
+}
+
+// WithTerragruntProviderCacheHostname sets the provider cache server hostname.
+//
+// This method sets the hostname for the Terragrunt provider cache server.
+//
+// Parameters:
+//   - hostname: The hostname for the provider cache server
+func (m *Infra) WithTerragruntProviderCacheHostname(hostname string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_PROVIDER_CACHE_HOSTNAME", hostname)
+
+	return m
+}
+
+// WithTerragruntProviderCachePort sets the provider cache server port.
+//
+// This method sets the port for the Terragrunt provider cache server.
+//
+// Parameters:
+//   - port: The port number for the provider cache server
+func (m *Infra) WithTerragruntProviderCachePort(port int) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_PROVIDER_CACHE_PORT", fmt.Sprintf("%d", port))
+
+	return m
+}
+
+// WithTerragruntProviderCacheToken sets the provider cache server authentication token.
+//
+// This method sets the authentication token for the Terragrunt provider cache server.
+//
+// Parameters:
+//   - token: The authentication token for the provider cache server
+func (m *Infra) WithTerragruntProviderCacheToken(token string) *Infra {
+	m.Ctr = m.Ctr.
+		WithEnvVariable("TG_PROVIDER_CACHE_TOKEN", token)
 
 	return m
 }
