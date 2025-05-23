@@ -220,17 +220,22 @@ pipeline-infra-tg-exec args="": (pipeline-infra-build)
 
 # 🔨 Run a Terragrunt job with custom arguments
 [working-directory:'pipeline/infra']
-pipeline-infra-tg-ci-static env="global" stack="dni": (pipeline-infra-build)
+pipeline-infra-tg-ci-static env="global" stack="non-distributable": (pipeline-infra-build)
     @echo "🔄 Running Terragrunt CI checks through Dagger"
     @echo "🌍 Environment: {{env}} | 📚 Stack: {{stack}}"
     @dagger call job-citg-stack-static-analysis \
-        --aws-region eu-west-1 \
         --aws-access-key-id env:AWS_ACCESS_KEY_ID \
         --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
-        --load-dot-env \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
         --no-cache \
         --environment "{{env}}" \
-        --stack "{{stack}}"
+        --stack "{{stack}}" \
+        --git-ssh $SSH_AUTH_SOCK
 
     @echo "✅ Terragrunt CI checks completed successfully on environment: {{env}} | 📚 Stack: {{stack}}"
 

@@ -13,15 +13,15 @@ var unitsPerStack = map[string][][]string{
 	"dni": {
 		// Units for the domain stack, meaning, under the infra/terragrunt/<environment>/domain/ folder.
 		{
-			"dni_generator",
-			"lastname_generator",
-			"name_generator",
-			"age_generator",
+			"dni-generator",
+			"lastname-generator",
+			"name-generator",
+			"age-generator",
 		},
 	},
 	"non-distributable": {
 		{
-			"randomstring_generator",
+			"random-string-generator",
 		},
 	},
 
