@@ -54,8 +54,7 @@ jobs:
           version: ${{ env.DAGGER_VERSION }}
           verb: "call"
           module: pipeline/infra
-          args: >-
-            job-citg-stack-static-analysis --deployment-region ${{ env.DEFAULT_REGION }} --aws-access-key-id env:AWS_ACCESS_KEY_ID
+          args: job-citg-stack-static-analysis --deployment-region ${{ env.DEFAULT_REGION }} --aws-access-key-id env:AWS_ACCESS_KEY_ID
             --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY --remote-state-bucket ${{ secrets.TF_STATE_BUCKET }} --remote-state-lock-table
             ${{ secrets.TF_STATE_LOCK_TABLE }} --remote-state-region ${{ env.DEFAULT_REGION }} --environment "global" --stack
             "dni" --no-cache --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info"
@@ -82,8 +81,7 @@ jobs:
           version: ${{ env.DAGGER_VERSION }}
           verb: "call"
           module: pipeline/infra
-          args: >-
-            job-tg-exec --cmd "plan" --layer "dni" --unit "dni-generator" --aws-access-key-id env:AWS_ACCESS_KEY_ID --aws-secret-access-key
+          args: job-tg-exec --cmd "plan" --layer "dni" --unit "dni-generator" --aws-access-key-id env:AWS_ACCESS_KEY_ID --aws-secret-access-key
             env:AWS_SECRET_ACCESS_KEY --remote-state-bucket ${{ secrets.TF_STATE_BUCKET }} --remote-state-lock-table ${{ secrets.TF_STATE_LOCK_TABLE
             }} --remote-state-region ${{ env.DEFAULT_REGION }} --deployment-region ${{ env.DEFAULT_REGION }} --environment
             "global" --no-cache --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info"
