@@ -11,7 +11,7 @@ A cutting-edge, production-grade infrastructure management framework (or, just a
 | 🧩 Modular Architecture                   | Discrete, composable infrastructure units, that can inherit from shared unit's configurations, and from their parents in the hierarchy (stacks, or environments)                                                                                                                                                   |
 | 🌈 Highly Hierarchical Flexible Overrides | Designed to support multiple environments (the most common abstraction), where each environment can hold many stacks, and each stack can hold many units                                                                                                                                                           |
 | 🚀 Multi-Provider Compatibility           | Support for diverse cloud and infrastructure providers. Dynamically set providers, versions and overrides. It passes the control of the providers, and versions (if applicable) to the units, which are the smallest components of the architecture that deals directly with the terraform abstractions (modules). |
-| 🔧 Dynamic Environment Configuration      | Hierarchical, secure, and extensible environment variable management with recursive `.envrc` file inheritance, secure variable export with validation, automatic inheritance and override mechanisms, and comprehensive logging and tracing of environment setup                                                  |
+| 🔧 Dynamic Environment Configuration      | Utilizes `.env` files for straightforward environment variable management. Settings are typically defined in a `.env` file (copied from `.env.example`), which is automatically loaded by `just` recipes. See [Environment Variables Documentation](docs/environment-variables.md) for full details.                   |
 | 🧼 Clean Code Configuration               | Strict separation of configuration logic, with clear distinctions between global settings, provider management, and Terragrunt generation rules in `config.hcl` and `root.hcl`. Implements comprehensive commenting and modular configuration design.                                                              |
 
 ## 📐 Architecture Overview
@@ -107,86 +107,50 @@ infra/terragrunt
 
 ## Cool things inside? 🌟
 
-### 🔐 Environment Variable Management with `.envrc`
+### 🔐 Environment Variable Management with `.env` Files
 
-A sophisticated, secure environment variable management system powered by [direnv](https://direnv.net/). It works by recursively loading environment variables through a hierarchical structure of `.envrc` files:
+This project uses a straightforward environment variable management system based on `.env` files:
 
-- `.envrc` in the root directory: Sets global defaults and core environment variables
-- `infra/terragrunt/.envrc`: Terragrunt-specific configuration that inherits from the root
-- `infra/terragrunt/<environment>/.envrc`: Environment-specific variables (dev, staging, prod)
-- `infra/terragrunt/<environment>/<stack>/.envrc`: Stack-specific variables (optional)
+- **`.env.example`**: A template file in the project root lists available environment variables and provides example values.
+- **`.env`**: You create this file by copying `.env.example`. It's where you set your actual, local-specific or sensitive variable values. This file should be added to `.gitignore`.
+- **Automatic Loading with `just`**: The `justfile` is configured with `set dotenv-load`, so any `just` command will automatically load variables from your `.env` file.
 
-Each `.envrc` file inherits from its parent using `source_up` and can override or extend variables as needed. This creates a clean, hierarchical configuration that's easy to manage and customize.
-
-> [!NOTE]
-> Environment variables defined in child directories will override those from parent directories, allowing for precise customization at each level.
+This approach simplifies environment setup and customization. For a comprehensive guide and list of all supported variables, please refer to the [Environment Variables Documentation](docs/environment-variables.md).
 
 ### 🔧 Environment Setup
 
-To set up your environment:
+To set up your development environment:
 
-1. Install [direnv](https://direnv.net/) if you haven't already
-2. Run `just setup-env` to create a basic `.envrc` file if needed
-3. Edit the `.envrc` files at different levels to customize your environment
-4. Run `direnv allow` in each directory to apply changes
+1.  **Install Prerequisites**: Ensure you have [Terraform](https://www.terraform.io/), [Terragrunt](https://terragrunt.gruntwork.io/), [mise](https://mise.jdx.dev/), and [Just](https://github.com/casey/just) installed.
+2.  **Set up Environment Variables**:
+    *   Copy the `.env.example` file to `.env` in the project root: `cp .env.example .env`
+    *   Edit your `.env` file to set the appropriate values for your setup. Refer to `docs/environment-variables.md` for details on available variables.
+3.  **Activate Development Environment**:
+    *   Run `just dev`. This command will use `mise` to set up the shell with the correct tool versions defined in `mise.toml`. Variables from your `.env` file will also be available within `just` recipes.
 
-Each `.envrc` file is organized into clear sections:
+### 🔧 Dynamic Environment Variable Management (Simplified)
 
-- **HELPER FUNCTIONS**: Utility functions for logging, validation, and secure variable export
-- **ENVIRONMENT VARIABLES**: Customizable variables organized by category
-- **CUSTOM ENVIRONMENT VARIABLES**: Section for adding your own project-specific variables
+Environment variables are managed using `.env` files, as detailed above and in the [Environment Variables Documentation](docs/environment-variables.md). This method allows for easy customization of settings like AWS regions, Terraform versions, and application-specific parameters.
 
-### 🔧 Dynamic Environment Variable Management
+#### Key Environment Variables (Examples)
 
-A sophisticated environment variable management system powered by [direnv](https://direnv.net/).
+The full list of supported environment variables, their descriptions, default values, and usage contexts can be found in the [Environment Variables Documentation](docs/environment-variables.md). Here are a few examples typically found in `.env.example`:
 
-#### Key Features
-- Hierarchical inheritance of variables across project layers
-- Secure validation and export of environment variables
-- Flexible configuration across different environments
-
-#### Supported Environment Variables
-
-For a comprehensive list of supported environment variables, their descriptions, and customization levels, please refer to the [Environment Variables Documentation](docs/environment-variables.md).
-
-| Category | Variable Name | Description | Default Value (in HCL) | Used In |
-| -------- | ------------- | ----------- | ------------- | ------- |
-| **Terragrunt Flags** | `TG_STACK_FLAG_ENABLE_PROVIDERS_OVERRIDE` | Controls dynamic provider file generation | `"true"` | `config.hcl` |
-| | `TG_STACK_FLAG_ENABLE_VERSIONS_OVERRIDE` | Controls dynamic version file generation | `"true"` | `config.hcl` |
-| | `TG_STACK_FLAG_ENABLE_TERRAFORM_VERSION_FILE_OVERRIDE` | Controls `.terraform-version` file generation | `"false"` | `config.hcl` |
-| **Deployment Config** | `TG_STACK_DEPLOYMENT_REGION` | Default AWS region for deployments | `"us-east-1"` | `config.hcl` |
-| **Terraform Version** | `TG_STACK_TF_VERSION` | Enforced Terraform version for `.terraform-version` | `"1.11.3"` | `config.hcl` |
-| **Application Metadata** | `TG_STACK_APP_PRODUCT_NAME` | Project/application name | `"my-app"` | `app.hcl`, `tags.hcl` |
-| | `TG_STACK_APP_AUTHOR` | Configuration author | `""` | `tags.hcl` |
-| **Remote State** | `TG_STACK_REMOTE_STATE_BUCKET_NAME` | S3 bucket for remote state | *None* | `remote_state.hcl` |
-| | `TG_STACK_REMOTE_STATE_LOCK_TABLE` | DynamoDB lock table | *None* | `remote_state.hcl` |
-| | `TG_STACK_REMOTE_STATE_REGION` | Remote state storage region | `"us-east-1"` | `remote_state.hcl` |
-| | `TG_STACK_REMOTE_STATE_OBJECT_BASENAME` | Remote state file basename | `"terraform.tfstate.json"` | `remote_state.hcl` |
-| | `TG_STACK_REMOTE_STATE_BACKEND_TF_FILENAME` | Backend configuration filename | `"backend.tf"` | `remote_state.hcl` |
-| **Provider Credentials** | `TG_STACK_PROVIDER_CREDENTIAL` | Provider authentication credentials (if needed) | `""` | Referenced in comments |
-| **Module Versions (Unit Overrides)** | `TG_STACK_TF_MODULE_NAME_GENERATOR_VERSION_DEFAULT` | Overrides default version for name-generator module set in `_units/name_generator.hcl` | `"v0.1.0"` | `_units/name_generator.hcl` |
-| | `TG_STACK_TF_MODULE_LASTNAME_GENERATOR_VERSION_DEFAULT` | Overrides default version for lastname-generator module set in `_units/lastname_generator.hcl` | `"v0.1.0"` | `_units/lastname_generator.hcl` |
-| | `TG_STACK_TF_MODULE_DNI_GENERATOR_VERSION_DEFAULT` | Overrides default version for dni-generator module set in `_units/dni_generator.hcl` | `"v0.1.0"` | `_units/dni_generator.hcl` |
-| | `TG_STACK_TF_MODULE_AGE_GENERATOR_VERSION_DEFAULT` | Overrides default version for age-generator module set in `_units/age_generator.hcl` | `"v0.1.0"` | `_units/age_generator.hcl` |
-| **Terragrunt Config (Standard)** | `TERRAGRUNT_DOWNLOAD_DIR` | Terragrunt cache directory | `"${HOME}/.terragrunt-cache/..."` | Terragrunt Runtime |
-| | `TERRAGRUNT_CACHE_MAX_AGE` | Terragrunt cache expiration | `"168h"` | Terragrunt Runtime |
-| | `TERRAGRUNT_LOG_LEVEL` | Terragrunt logging verbosity | `"info"` | Terragrunt Runtime |
-| | `TERRAGRUNT_DISABLE_CONSOLE_OUTPUT` | Console output control | `"false"` | Terragrunt Runtime |
-| | `TERRAGRUNT_AUTO_INIT` | Automatic Terragrunt initialization | `"true"` | Terragrunt Runtime |
-| | `TERRAGRUNT_AUTO_RETRY` | Automatic retry on failure | `"true"` | Terragrunt Runtime |
+| Category                    | Variable Name                     | Example Value (in `.env.example`) |
+|-----------------------------|-----------------------------------|-----------------------------------|
+| **Cloud Provider & Region** | `DEFAULT_REGION`                  | `us-east-1`                       |
+| **Terraform & Terragrunt**  | `TG_NON_INTERACTIVE`              | `true`                            |
+|                             | `TG_STACK_TF_VERSION`             | `1.11.3`                          |
+| **Remote State Config**     | `TG_STACK_REMOTE_STATE_BUCKET_NAME` | `your-tf-state-bucket`            |
 
 > [!NOTE]
-> Variables like `TG_ENVIRONMENT`, `TF_INPUT`, `PROJECT_ROOT`, `LANG`, `LC_ALL`, `DIRENV_LOG_FORMAT` etc., are typically set directly in the environment or via `.envrc` files and are not explicitly retrieved using `get_env()` within the shared Terragrunt HCL configuration files.
+> Always refer to `docs/environment-variables.md` for the most current and comprehensive list of environment variables.
 
 #### Quick Environment Setup
 
-1. Install [direnv](https://direnv.net/)
-2. Run `just setup-env` to create initial configuration
-3. Edit `.envrc` files to customize your environment
-4. Run `direnv allow` to load variables
-
-> [!TIP]
-> Each `.envrc` file includes a section for custom environment variables where you can add project-specific settings.
+1.  Install prerequisites (Terraform, Terragrunt, mise, Just).
+2.  Copy `.env.example` to `.env` and customize it.
+3.  Run `just dev` to activate the mise environment. Variables from `.env` will be loaded for `just` commands.
 
 For more detailed information, consult the [Environment Variables Documentation](docs/environment-variables.md).
 
@@ -286,15 +250,18 @@ Dive deep into our architecture with our detailed documentation:
 
 - [Terragrunt](https://terragrunt.gruntwork.io/)
 - [Terraform](https://www.terraform.io/)
-- [direnv](https://direnv.net/) (required for environment management)
-- (Optional) [JustFile](https://github.com/casey/just)
+- [mise](https://mise.jdx.dev/) (for managing tool versions and development shell)
+- [Just](https://github.com/casey/just) (for running project commands and loading `.env` files)
 
 ### Environment Setup
 
-1. Install direnv: Follow the [installation instructions](https://direnv.net/docs/installation.html) for your platform
-2. Run `just setup-env` to create a basic `.envrc` file if needed
-3. Edit the `.envrc` files at different levels to customize your environment
-4. Run `direnv allow` in each directory to apply changes
+1. Clone the repository.
+2. Install prerequisites listed above.
+3. Set up your local environment variables:
+   - Copy `.env.example` to `.env`: `cp .env.example .env`
+   - Edit `.env` with your specific configurations. See [Environment Variables Documentation](docs/environment-variables.md) for details.
+4. Activate the development environment:
+   - Run `just dev`. This will use `mise` to prepare your shell with the correct tool versions.
 
 ### Running Terragrunt commands
 
@@ -324,18 +291,21 @@ just tg-run-all-plan global dni
 ### Quick Setup
 
 1. Clone the repository
-2. Install prerequisites (Terraform, Terragrunt, direnv)
-3. Run `just setup-env` to create your environment configuration
-4. Run `direnv allow` to load environment variables
+2. Install prerequisites (Terraform, Terragrunt, mise, Just)
+3. Set up your local environment variables:
+   - Copy `.env.example` to `.env`: `cp .env.example .env`
+   - Edit `.env` with your specific configurations. See [Environment Variables Documentation](docs/environment-variables.md) for details.
+4. Activate the development environment:
+   - Run `just dev`. This will use `mise` to prepare your shell with the correct tool versions.
 5. Review documentation and customize configurations
 
 ## 🤖 CI Automation with Dagger
 
-This reference architecture includes a [Dagger](https://dagger.io/) module located in [`ci/ci-terragrunt`](ci/ci-terragrunt) to automate Terragrunt workflows in CI pipelines.
+This reference architecture includes a [Dagger](https://dagger.io/) module written in Go, located in [`pipeline/infra/`](pipeline/infra/), to automate Terragrunt and Terraform workflows, providing consistent and reproducible environments for CI pipelines and local development.
 
-- **GitHub Actions:** A working example workflow demonstrating how to use the Dagger module for Terragrunt static checks and plans can be found in [`.github/workflows/dagger-ci.yml`](.github/workflows/dagger-ci.yml).
-- **Local Execution:** The [`justfile`](justfile) provides convenient recipes (e.g., `just ci-job-units-static-check`) for running these Dagger CI jobs locally.
-- **Module Details:** For a detailed explanation of the Dagger module's functions and how to extend it, see the [Dagger CI Module Guide](ci/README.md).
+- **GitLab CI Integration:** The module is primarily used within the GitLab CI/CD pipelines defined in the [`.gitlab/`](.gitlab/) directory. See the [GitLab CI/CD Configuration Guide](./.gitlab/README.md#dagger-integration-pipelineinfra) for details on its structure and how it powers the CI jobs.
+- **Local Execution:** The [`justfile`](justfile) provides convenient recipes (e.g., `just ci-job-units-static-check`) for running Dagger CI-like jobs locally. You can also invoke Dagger functions directly from the `pipeline/infra/` directory using the Dagger CLI for more granular control or debugging (e.g., `dagger call open-terminal --src ../../ up --stdout`).
+- **Module Details:** For a detailed explanation of the Dagger module's functions, how it handles tool versions, environment variables (including `.env` files), and authentication, refer to the [Dagger Integration section in the GitLab CI/CD Configuration Guide](./.gitlab/README.md#dagger-integration-pipelineinfra).
 
 ## 🤝 Contributing
 
