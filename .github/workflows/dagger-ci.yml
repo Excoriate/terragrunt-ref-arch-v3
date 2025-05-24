@@ -10,6 +10,7 @@ on:
 
 env:
   DAGGER_VERSION: "0.18.8"
+  DEFAULT_REGION: "us-east-1" # Global env var for default region
 
 jobs:
   tf_modules_ci:
@@ -19,24 +20,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Dagger CLI
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=${{ env.DAGGER_VERSION }} BIN_DIR=$HOME/.local/bin sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Validate Terraform Modules Static Analysis
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
-          verb: "call"
-          module: pipeline/infra # Specifies the directory of the Dagger module
-          args: job-tf-modules-static-check # Calls the specific Dagger function
+        run: dagger call --module pipeline/infra job-tf-modules-static-check
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Validate Terraform Modules Compatibility
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
-          verb: "call"
-          module: pipeline/infra # Specifies the directory of the Dagger module
-          args: job-tf-modules-compatibility-check # Calls the specific Dagger function
+        run: dagger call --module pipeline/infra job-tf-modules-compatibility-check
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -48,22 +44,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Dagger CLI
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=${{ env.DAGGER_VERSION }} BIN_DIR=$HOME/.local/bin sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run Terragrunt Units Static Check
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
-          verb: "call"
-          module: pipeline/infra
-          args: job-citg-stack-static-analysis --deployment-region "${{ env.DEFAULT_REGION }}" --aws-access-key-id "${{ secrets.AWS_ACCESS_KEY_ID }}" --aws-secret-access-key "${{ secrets.AWS_SECRET_ACCESS_KEY }}" --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}" --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}" --remote-state-region "${{ env.DEFAULT_REGION }}" --environment "global" --stack "dni" --no-cache --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info,TG_STACK_REMOTE_STATE_BUCKET_NAME=${{ secrets.TF_STATE_BUCKET }},TG_STACK_REMOTE_STATE_LOCK_TABLE=${{ secrets.TF_STATE_LOCK_TABLE }},TG_STACK_REMOTE_STATE_REGION=${{ env.DEFAULT_REGION }}"
+        run: >-
+          dagger call --module pipeline/infra
+          job-citg-stack-static-analysis
+          --deployment-region "${{ env.DEFAULT_REGION }}"
+          --aws-access-key-id env:AWS_ACCESS_KEY_ID
+          --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY
+          --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}"
+          --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}"
+          --remote-state-region "${{ env.DEFAULT_REGION }}"
+          --environment "global"
+          --stack "dni"
+          --no-cache
+          --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info,TG_STACK_REMOTE_STATE_BUCKET_NAME=${{ secrets.TF_STATE_BUCKET }},TG_STACK_REMOTE_STATE_LOCK_TABLE=${{ secrets.TF_STATE_LOCK_TABLE }},TG_STACK_REMOTE_STATE_REGION=${{ env.DEFAULT_REGION }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          DEFAULT_REGION: "us-east-1"
-          TG_NON_INTERACTIVE: "true"
-          TG_LOG_LEVEL: "info"
-          TG_STACK_REMOTE_STATE_BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }}
-          TG_STACK_REMOTE_STATE_LOCK_TABLE: ${{ secrets.TF_STATE_LOCK_TABLE }}
-          TG_STACK_REMOTE_STATE_REGION: "us-east-1"
+          # DEFAULT_REGION is available from global env
+          # TF_STATE_BUCKET and TF_STATE_LOCK_TABLE are interpolated from secrets directly
 
   tg_units_plan:
     name: Terragrunt Units Plan
@@ -72,19 +76,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Dagger CLI
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=${{ env.DAGGER_VERSION }} BIN_DIR=$HOME/.local/bin sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Run Terragrunt Units Plan
-        uses: dagger/dagger-for-github@8.0.0
-        with:
-          version: ${{ env.DAGGER_VERSION }}
-          verb: "call"
-          module: pipeline/infra
-          args: job-tg-exec --cmd "plan" --layer "dni" --unit "dni-generator" --aws-access-key-id "${{ secrets.AWS_ACCESS_KEY_ID }}" --aws-secret-access-key "${{ secrets.AWS_SECRET_ACCESS_KEY }}" --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}" --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}" --remote-state-region "${{ env.DEFAULT_REGION }}" --deployment-region "${{ env.DEFAULT_REGION }}" --environment "global" --no-cache --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info,TG_STACK_REMOTE_STATE_BUCKET_NAME=${{ secrets.TF_STATE_BUCKET }},TG_STACK_REMOTE_STATE_LOCK_TABLE=${{ secrets.TF_STATE_LOCK_TABLE }},TG_STACK_REMOTE_STATE_REGION=${{ env.DEFAULT_REGION }}"
+        run: >-
+          dagger call --module pipeline/infra
+          job-tg-exec
+          --cmd "plan"
+          --layer "dni"
+          --unit "dni-generator"
+          --aws-access-key-id env:AWS_ACCESS_KEY_ID
+          --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY
+          --remote-state-bucket "${{ secrets.TF_STATE_BUCKET }}"
+          --remote-state-lock-table "${{ secrets.TF_STATE_LOCK_TABLE }}"
+          --remote-state-region "${{ env.DEFAULT_REGION }}"
+          --deployment-region "${{ env.DEFAULT_REGION }}"
+          --environment "global"
+          --no-cache
+          --env-vars "TG_NON_INTERACTIVE=true,TG_LOG_LEVEL=info,TG_STACK_REMOTE_STATE_BUCKET_NAME=${{ secrets.TF_STATE_BUCKET }},TG_STACK_REMOTE_STATE_LOCK_TABLE=${{ secrets.TF_STATE_LOCK_TABLE }},TG_STACK_REMOTE_STATE_REGION=${{ env.DEFAULT_REGION }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          DEFAULT_REGION: "us-east-1"
-          TG_NON_INTERACTIVE: "true"
-          TG_LOG_LEVEL: "info"
-          TG_STACK_REMOTE_STATE_BUCKET_NAME: ${{ secrets.TF_STATE_BUCKET }}
-          TG_STACK_REMOTE_STATE_LOCK_TABLE: ${{ secrets.TF_STATE_LOCK_TABLE }}
-          TG_STACK_REMOTE_STATE_REGION: "us-east-1"
+          # DEFAULT_REGION is available from global env
+          # TF_STATE_BUCKET and TF_STATE_LOCK_TABLE are interpolated from secrets directly
