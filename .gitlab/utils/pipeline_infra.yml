@@ -1,0 +1,37 @@
+---
+.container_runtime:
+  image: docker:latest
+  services:
+    - docker:${DOCKER_VERSION}-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: '1'
+    DOCKER_TLS_CERTDIR: '/certs'
+    DOCKER_CERT_PATH: '/certs/client'
+    DOCKER_DRIVER: overlay2
+    DOCKER_VERSION: '27.2.0'
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+
+.dagger_install:
+  extends: .container_runtime
+  stage: setup-pipeline-infra
+  before_script:
+    - apk add --no-cache curl
+    - mkdir -p $HOME/.local/bin
+    - curl -fsSL https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION=${DAGGER_VERSION} BIN_DIR=$HOME/.local/bin sh
+    - 'export PATH=$HOME/.local/bin:$PATH'
+  script:
+    - dagger version
+
+.retry:
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+
+.terraform-registry-auth:
+  script:
+    - export TF_TOKEN_gitlab_com="${TERRAFORM_RELEASE_PUBLISH}"

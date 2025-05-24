@@ -1,0 +1,34 @@
+include:
+  - local: ".gitlab/utils/pipeline_tooling.yml"
+
+workflow:
+  name: "🔍 Pipeline Static Analysis"
+
+# This job runs pre-commit hooks to ensure code quality and standards across the repository.
+# It performs automated checks on all files in the repository, including:
+# - Code formatting
+# - Linting
+# - Security checks
+# - Best practices validation
+#
+# The job runs automatically on changes to any file or can be triggered manually.
+#
+# The job extends the .precommit_tooling_setup template (from pipeline_tooling.yml),
+# which installs required tools and sets up the pre-commit environment.
+# NOTE: The .ssh_agent_setup template is available for extension if SSH agent setup is needed in future jobs.
+pre_commit:
+  stage: static-analysis
+  extends: .precommit_tooling_setup
+  script:
+    - echo "🚀 Starting pre-commit hooks validation..."
+    - echo "📋 Checking all files for code quality and standards..."
+    - |
+      if pre-commit run --all-files; then
+        echo "✅ All pre-commit checks passed successfully!";
+      else
+        echo '❌ Pre-commit hooks failed!';
+        echo '🔍 Please review the errors above and fix them before proceeding.';
+        echo '💡 Tip: Run pre-commit locally with "pre-commit run --all-files" to test changes.';
+        exit 1;
+      fi
+  allow_failure: false

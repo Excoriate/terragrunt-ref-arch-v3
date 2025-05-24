@@ -1,0 +1,35 @@
+include:
+  - local: ".gitlab/utils/pipeline_auth.yml"
+
+workflow:
+  name: "🔐 Test AWS OIDC Setup"
+
+# Test OIDC authentication for Dev environment
+# Uses the Dev OIDC role and outputs the AWS identity
+# Ensures Dev OIDC config is correct
+
+# Test OIDC authentication for Prod environment
+# Uses the Prod OIDC role and outputs the AWS identity
+# Ensures Prod OIDC config is correct
+
+test_aws_oidc_dev:
+  stage: setup
+  extends:
+    - .aws_oidc_auth_dev
+  image: public.ecr.aws/aws-cli/aws-cli
+  script:
+    - echo "🔐 Testing AWS OIDC authentication for DEV..."
+    - aws sts get-caller-identity
+    - echo "✅ AWS OIDC authentication test for DEV completed."
+  allow_failure: false
+
+test_aws_oidc_prod:
+  stage: setup
+  extends:
+    - .aws_oidc_auth_prod
+  image: public.ecr.aws/aws-cli/aws-cli
+  script:
+    - echo "🔐 Testing AWS OIDC authentication for PROD..."
+    - aws sts get-caller-identity
+    - echo "✅ AWS OIDC authentication test for PROD completed."
+  allow_failure: false

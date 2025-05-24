@@ -1,0 +1,86 @@
+include:
+  - local: ".gitlab/utils/pipeline_auth.yml"
+  - local: ".gitlab/utils/pipeline_infra.yml"
+
+workflow:
+  name: "👩‍🚀 Pipeline Dagger: CI of the CI"
+
+# This job sets up SSH authentication for the pipeline using a reusable template.
+# It runs in the 'dagger-requisites' stage and is required for jobs that need SSH access.
+# The .pipeline_setup_ssh template (from pipeline_auth.yml) installs openssh-client and configures the SSH agent.
+# Remove the pipeline_setup_ssh job definition if present, and update any job that extends .pipeline_setup_ssh to use .ssh_agent_setup instead.
+
+# This job sets up any additional environment variables required for the pipeline.
+# It runs in the 'dagger-requisites' stage and uses the .pipeline_setup_additional_vars template (from pipeline_auth.yml).
+# The template parses ADDITIONAL_ENV_VARS and writes them to a dotenv file for downstream jobs.
+
+# This job inspects the dagger.json file in the pipeline/infra directory.
+# It runs in the 'dagger-ci' stage and fails if dagger.json is missing or unreadable.
+# The job uses the alpine:latest image for lightweight shell operations.
+inspect_dagger_json:
+  stage: dagger-ci
+  image: alpine:latest
+  script:
+    - cd pipeline/infra
+    - echo "🔍 Inspecting dagger.json file..."
+    - if [ ! -f dagger.json ]; then echo "❌ dagger.json not found!"; exit 1; fi
+    - echo "📄 Contents of dagger.json:"
+    - cat dagger.json
+  allow_failure: false
+
+# This job installs Dagger CLI and its dependencies for the pipeline.
+# It runs in the 'dagger-build' stage and extends .dagger_install (from pipeline_infra.yml),
+# which itself extends .docker (sets image: docker:latest and Docker-in-Docker services).
+# The .dagger_install template installs Dagger CLI using the specified DAGGER_VERSION.
+pipeline_setup_dagger:
+  extends:
+    - .dagger_install
+    - .retry
+  stage: dagger-ci
+  script:
+    - dagger version
+  allow_failure: false
+
+# This job initializes the Dagger development environment in pipeline/infra.
+# It runs in the 'dagger-build' stage and depends on pipeline_setup_dagger.
+# The job extends .retry (from pipeline_infra.yml) for system failure retries and .dagger_install for Dagger CLI setup.
+# It sets NOTHANKS=1 to prevent Dagger from exporting traces.
+# The job lists files in pipeline/infra and starts the Dagger development environment.
+pipeline_build_dagger:
+  stage: dagger-ci
+  extends:
+    - .retry
+    - .dagger_install
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔨 Initializing Dagger development environment in pipeline/infra"
+    - cd pipeline/infra
+    - echo "📂 Listing files in pipeline/infra directory"
+    - ls -la
+    - echo "🚀 Starting Dagger development environment"
+    - dagger develop
+  allow_failure: false
+  needs:
+    - pipeline_setup_dagger
+
+# This job lists available Dagger functions in the pipeline/infra directory.
+# It runs in the 'dagger-build' stage and depends on pipeline_setup_dagger.
+# The job extends .dagger_install (for Dagger CLI setup) and .retry (for system failure retries).
+# It sets NOTHANKS=1 to prevent Dagger from exporting traces.
+# The job outputs the available Dagger functions for visibility and verification.
+pipeline_ci_dagger:
+  stage: dagger-ci
+  extends:
+    - .dagger_install
+    - .retry
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔍 Listing available Dagger functions"
+    - cd pipeline/infra
+    - dagger functions
+    - echo "✅ Dagger functions listed successfully"
+  allow_failure: false
+  needs:
+    - pipeline_setup_dagger
