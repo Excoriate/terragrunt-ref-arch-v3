@@ -55,6 +55,44 @@ verify_hook_installation() {
     log INFO "All Git hooks verified successfully"
 }
 
+# Function to safely unset core.hooksPath from Git configuration
+# This resolves conflicts with pre-commit installation
+unset_core_hooks_path() {
+    local hooks_path_value
+
+    # Check if core.hooksPath is set and get its value
+    if hooks_path_value=$(git config core.hooksPath 2>/dev/null); then
+        log INFO "Found core.hooksPath set to: ${hooks_path_value}"
+        log INFO "Pre-commit requires exclusive control over Git hooks directory"
+        log INFO "Attempting to unset core.hooksPath to allow pre-commit installation..."
+
+        # Try to unset from local repository first
+        if git config --local --unset-all core.hooksPath 2>/dev/null; then
+            log INFO "Successfully unset core.hooksPath from local repository configuration"
+            return 0
+        fi
+
+        # Try to unset from global configuration
+        if git config --global --unset-all core.hooksPath 2>/dev/null; then
+            log INFO "Successfully unset core.hooksPath from global Git configuration"
+            return 0
+        fi
+
+        # If both fail, provide helpful guidance
+        log WARNING "Could not automatically unset core.hooksPath"
+        log WARNING "This may be set at system level or require different permissions"
+        log WARNING "You may need to manually run one of these commands:"
+        log WARNING "  git config --local --unset-all core.hooksPath"
+        log WARNING "  git config --global --unset-all core.hooksPath"
+        log WARNING "  git config --system --unset-all core.hooksPath (requires admin)"
+        log WARNING "Continuing with pre-commit installation attempt..."
+        return 1
+    else
+        log INFO "core.hooksPath is not set - pre-commit installation should proceed normally"
+        return 0
+    fi
+}
+
 # Install pre-commit hooks
 # Exposed function 1: Initialize repository hooks
 pc_init() {
@@ -65,9 +103,15 @@ pc_init() {
         log WARNING "Failed to update pre-commit hooks to the latest version. Continuing with existing hooks."
     fi
 
+    # Handle core.hooksPath configuration that conflicts with pre-commit
+    unset_core_hooks_path
+
     log INFO "Installing pre-commit hooks..."
     if ! pre-commit install; then
         log ERROR "Failed to install pre-commit hooks"
+        log ERROR "If you see 'Cowardly refusing to install hooks with core.hooksPath set':"
+        log ERROR "  Run: git config --unset-all core.hooksPath"
+        log ERROR "  Then retry: just hooks-install"
         return 1
     fi
 
@@ -87,12 +131,8 @@ pc_init() {
         return 1
     fi
 
-    # Configure Git to always run hooks
-    if ! git config --global core.hooksPath .git/hooks; then
-        log WARNING "Could not set global hooks path. Hooks might not run automatically."
-    fi
-
-    log INFO "All pre-commit hooks installed and verified successfully"
+    log INFO "🎉 All pre-commit hooks installed and verified successfully!"
+    log INFO "Your repository is now configured with automated code quality checks"
 }
 
 # Run pre-commit hooks on all files

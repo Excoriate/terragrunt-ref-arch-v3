@@ -1,0 +1,97 @@
+---
+include:
+  - local: ".gitlab/utils/pipeline_auth.yml"
+  - local: ".gitlab/utils/pipeline_infra.yml"
+  - local: ".gitlab/utils/pipeline_tooling.yml"
+
+workflow:
+  name: "🏗️ Pipeline Infra: CI Terraform"
+
+# This job prepares additional environment variables for the Terraform infrastructure CI pipeline.
+# It uses the .pipeline_setup_additional_vars template to parse and write ADDITIONAL_ENV_VARS to a dotenv file,
+# enabling dynamic environment configuration for downstream jobs.
+pipeline_setup_additional_vars:
+  extends: .additional_vars_setup
+  image: alpine:latest
+  stage: infra-ci-terraform
+  allow_failure: false
+
+# This job installs and verifies the Dagger CLI, ensuring the pipeline has the correct version of Dagger
+# available for executing infrastructure-as-code pipeline tasks. It checks the installed Dagger version
+# to confirm proper installation and compatibility with the pipeline's requirements.
+pipeline_setup_dagger:
+  extends:
+    - .dagger_install
+    - .retry
+  stage: infra-ci-terraform
+  script:
+    - dagger version
+  allow_failure: false
+
+# This job initializes the Dagger development environment for the infrastructure pipeline.
+# It sets up the necessary context in the pipeline/infra directory, lists files to verify the environment,
+# and starts the Dagger development environment to prepare for subsequent infrastructure tasks.
+pipeline_build_dagger:
+  stage: infra-ci-terraform
+  extends:
+    - .retry
+    - .dagger_install
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔨 Initializing Dagger development environment in pipeline/infra"
+    - cd pipeline/infra
+    - echo "📂 Listing files in pipeline/infra directory"
+    - ls -la
+    - echo "🚀 Starting Dagger development environment"
+    - dagger develop
+  allow_failure: false
+  needs:
+    - pipeline_setup_dagger
+
+# This job runs comprehensive static code analysis on Terraform modules using Dagger.
+# It performs security checks, best practice validations, and linting on all Terraform modules
+# in the infra/terraform directory. The job can be triggered automatically on Terraform file changes
+# or manually for on-demand static analysis.
+infra-ci-static-check:
+  stage: infra-ci-terraform
+  extends:
+    - .dagger_install
+    - .retry
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔨 Running static checks for Terraform modules"
+    - cd pipeline/infra
+    - dagger call job-tf-modules-static-check
+    - echo "✅ Terraform modules static checks completed successfully"
+  allow_failure: false
+  rules:
+    - changes:
+        - infra/terraform/**/*
+    - when: manual
+  needs:
+    - pipeline_build_dagger
+
+# This job performs version compatibility testing for Terraform modules across different provider versions.
+# It checks the modules' compatibility with various Terraform provider versions to ensure
+# consistent functionality and identify potential version-related issues before deployment.
+infra-ci-version-compatibility-check:
+  stage: infra-ci-terraform
+  extends:
+    - .dagger_install
+    - .retry
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔨 Running version compatibility checks for Terraform modules"
+    - cd pipeline/infra
+    - dagger call job-tf-modules-compatibility-check
+    - echo "✅ Terraform modules version compatibility checks completed successfully"
+  allow_failure: false
+  rules:
+    - changes:
+        - infra/terraform/**/*
+    - when: manual
+  needs:
+    - pipeline_build_dagger

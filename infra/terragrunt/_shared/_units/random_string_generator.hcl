@@ -57,8 +57,8 @@ locals {
   # - Enhanced resource tracking and compliance
   # ---------------------------------------------------------------------------------------------------------------------
   unit_tags = {
-    Unit = "dni-generator"
-    Type = "random-generator"
+    Unit = "random-string-generator"
+    Type = "embedded-tf-module"
   }
 
   # 🔗 TAG SOURCE AGGREGATION
@@ -85,11 +85,11 @@ locals {
   # - Flexible repository and path selection
   # - Semantic version control
   #
-  git_base_url              = local.cfg.locals.cfg_git.git_base_urls.local
+  git_base_url              = ""
   git_base_url_local        = local.cfg.locals.cfg_git.git_base_urls.local
-  tf_module_repository      = "your-org/terraform-modules.git"
-  tf_module_version_default = get_env("TG_STACK_TF_MODULE_DNI_GENERATOR_VERSION_DEFAULT", "v0.1.0")
-  tf_module_path_default    = "modules/dni-generator"
+  tf_module_repository      = ""
+  tf_module_version_default = ""
+  tf_module_path_default    = ""
 
   tf_module_source = format(
     "%s%s//%s",
@@ -106,59 +106,31 @@ locals {
   # Here we define the specific configuration for the module.
   # This is useful when we need to override the default configuration for the module.
   #
-  # TODO: Add specific locals, or configuration for your module to be computed here.
 }
 
-# 🔗 DEPENDENCIES
-# These blocks define dependencies for the Terragrunt configuration.
+# 🔗 DEPENDENCY
+# This block defines a dependency for the Terragrunt configuration.
 # Dependencies allow for the management of resources that rely on
 # other configurations, ensuring that they are created or updated
 # in the correct order. This promotes modularity and reusability
-# of infrastructure components.
-
-dependency "age_generator" {
-  config_path = "${find_in_parent_folders("dni/age-generator")}"
-  mock_outputs = {
-    generated_age = 30
-  }
-}
-
-dependency "name_generator" {
-  config_path = "${find_in_parent_folders("dni/name-generator")}"
-  mock_outputs = {
-    full_name = "john-abc123"
-  }
-}
-
-dependency "lastname_generator" {
-  config_path = "${find_in_parent_folders("dni/lastname-generator")}"
-  mock_outputs = {
-    full_lastname = "smith-xyz789"
-  }
-}
-
-dependencies {
-  paths = [
-    "${find_in_parent_folders("dni/age-generator")}",
-    "${find_in_parent_folders("dni/name-generator")}",
-    "${find_in_parent_folders("dni/lastname-generator")}"
-  ]
-}
+# of infrastructure components, making it easier to manage complex
+# setups. Dependencies can also include mock outputs for testing
+# purposes without needing to provision the actual resources.
+# dependency "cloudflare_dns_zone" {
+#   config_path = find_in_parent_folders("<stack>/<unit>")
+#   mock_outputs = {
+#     cloudflare_zone_ids = {
+#       "fake-zone-id" = "fake-zone-id"
+#     }
+#   }
+# }
 
 # 🚀 TERRAGRUNT INFRASTRUCTURE UNIT CONFIGURATION
 # Defines the input parameters for the infrastructure unit
 # Combines global configuration, metadata, and tag management
 inputs = {
-  # Ensure all variables from variables.tf are explicitly set
-  prefix                  = ""   # Default empty string
-  generate_control_letter = true # Default true
-  name                    = dependency.name_generator.outputs.full_name
-  lastname                = dependency.lastname_generator.outputs.full_lastname
-
-  # CRITICAL: Explicitly set the age variable
-  # Use the dependency output or provide a default/mock value
-  age = dependency.age_generator.outputs.generated_age
-
-  country = "Spain" # Default country
-  tags    = local.all_tags
+  tags       = local.all_tags
+  is_enabled = true
+  length     = 5
+  lower      = false
 }

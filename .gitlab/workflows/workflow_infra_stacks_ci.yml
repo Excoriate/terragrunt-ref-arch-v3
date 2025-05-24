@@ -1,0 +1,101 @@
+---
+include:
+  - local: ".gitlab/utils/pipeline_auth.yml"
+  - local: ".gitlab/utils/pipeline_infra.yml"
+  - local: ".gitlab/utils/pipeline_tooling.yml"
+
+workflow:
+  name: "🏗️ Pipeline Stacks: CI Static Analysis"
+
+setup_dagger:
+  extends:
+    - .dagger_install
+    - .retry
+  stage: infra-ci-stacks-static
+  script:
+    - dagger version
+  allow_failure: false
+
+build_dagger:
+  stage: infra-ci-stacks-static
+  extends:
+    - .retry
+    - .dagger_install
+  variables:
+    NOTHANKS: "1"
+  script:
+    - echo "🔨 Initializing Dagger development environment in pipeline/infra"
+    - cd pipeline/infra
+    - echo "📂 Listing files in pipeline/infra directory"
+    - ls -la
+    - echo "🚀 Starting Dagger development environment"
+    - dagger develop
+  allow_failure: false
+  needs:
+    - setup_dagger
+
+stack-non-distributable-dev-static-analysis:
+  stage: infra-ci-stacks-static
+  extends:
+    - .aws_oidc_auth_dev
+    - .retry
+    - .container_runtime
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  before_script:
+    - !reference [.aws_cli_install, before_script]
+    - !reference [.additional_vars_setup, script]
+    - !reference [.dagger_cli_install, before_script]
+    - !reference [.ssh_agent_setup, before_script]
+    - !reference [.aws_oidc_auth, before_script]
+  variables:
+    NOTHANKS: "1"
+    STACK: "non-distributable"
+    ENV: "dev"
+    OIDC_ROLE_ARN: "$DEVEX_OIDC_ROLE_ARN_DEV"
+    TG_STACK_REMOTE_STATE_REGION: "eu-west-1"
+    TG_STACK_DEPLOYMENT_REGION: "eu-west-1"
+    TG_STACK_TF_VERSION: "1.11.3"
+  script:
+    - cd pipeline/infra
+    - dagger call job-citg-stack-static-analysis --aws-access-key-id=env:AWS_ACCESS_KEY_ID --aws-secret-access-key=env:AWS_SECRET_ACCESS_KEY
+      --aws-session-token=env:AWS_SESSION_TOKEN --no-cache --environment="$ENV" --stack="$STACK" --git-ssh=$SSH_AUTH_SOCK
+      --remote-state-bucket="$TG_STACK_REMOTE_STATE_BUCKET_NAME_DEV" --remote-state-lock-table="$TG_STACK_REMOTE_STATE_LOCK_TABLE_DEV"
+      --remote-state-region="$TG_STACK_REMOTE_STATE_REGION" --deployment-region="$TG_STACK_DEPLOYMENT_REGION" --tf-version-file="$TG_STACK_TF_VERSION"
+    - echo "✅ Terragrunt static analysis completed successfully"
+  needs:
+    - build_dagger
+
+stack-non-distributable-prod-static-analysis:
+  stage: infra-ci-stacks-static
+  extends:
+    - .aws_oidc_auth_prod
+    - .retry
+    - .container_runtime
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
+  before_script:
+    - !reference [.aws_cli_install, before_script]
+    - !reference [.additional_vars_setup, script]
+    - !reference [.dagger_cli_install, before_script]
+    - !reference [.ssh_agent_setup, before_script]
+    - !reference [.aws_oidc_auth, before_script]
+  variables:
+    NOTHANKS: "1"
+    STACK: "non-distributable"
+    ENV: "prod"
+    OIDC_ROLE_ARN: "$DEVEX_OIDC_ROLE_ARN_PROD"
+    TG_STACK_REMOTE_STATE_REGION: "eu-west-1"
+    TG_STACK_DEPLOYMENT_REGION: "eu-west-1"
+    TG_STACK_TF_VERSION: "1.11.3"
+  script:
+    - cd pipeline/infra
+    - dagger call job-citg-stack-static-analysis --aws-access-key-id=env:AWS_ACCESS_KEY_ID --aws-secret-access-key=env:AWS_SECRET_ACCESS_KEY
+      --aws-session-token=env:AWS_SESSION_TOKEN --no-cache --environment="$ENV" --stack="$STACK" --git-ssh=$SSH_AUTH_SOCK
+      --remote-state-bucket="$TG_STACK_REMOTE_STATE_BUCKET_NAME_PROD" --remote-state-lock-table="$TG_STACK_REMOTE_STATE_LOCK_TABLE_PROD"
+      --remote-state-region="$TG_STACK_REMOTE_STATE_REGION" --deployment-region="$TG_STACK_DEPLOYMENT_REGION" --tf-version-file="$TG_STACK_TF_VERSION"
+    - echo "✅ Terragrunt static analysis completed successfully"
+  needs:
+    - build_dagger

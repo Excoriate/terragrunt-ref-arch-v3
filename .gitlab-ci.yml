@@ -1,0 +1,137 @@
+---
+variables:
+  ENVIRONMENT:
+    description: "The environment to run the terragrunt command on. Valid values are dev, prod."
+    value: dev
+
+  DEPLOYMENT_REGION:
+    description: "The region to deploy the infrastructure to. By default, this is eu-west-1."
+    value: eu-west-1
+
+  GIT_REFERENCE:
+    description: "Branch or tag for the terragrunt dagger module to use (default: master)."
+    value: master
+
+  ADDITIONAL_ENV_VARS:
+    description: "Comma-separated KEY=VALUE pairs to inject as environment variables into all jobs."
+    value: ""
+
+  NOCACHE:
+    description: "If set to true, forces dagger to run without using its cache (cache burst). Useful for troubleshooting or
+      ensuring fresh builds."
+    value: "false"
+
+  DAGGER_VERSION:
+    description: "The version of dagger to use for the pipeline, by default it will use this pinned version v0.18.8"
+    value: "0.18.8"
+
+  TRIGGER_WORKFLOW_PIPELINE_BUILD:
+    description: "If set to true, triggers the dagger build workflow."
+    value: "false"
+
+  TRIGGER_WORKFLOW_INFRA_CI_TERRAFORM:
+    description: "If set to true, triggers the infra code CI workflow for Terraform only."
+    value: "false"
+
+  TRIGGER_WORKFLOW_INFRA_CI_STACKS:
+    description: "If set to true, triggers the infra code CI workflow for Stacks only."
+    value: "false"
+
+  TRIGGER_WORKFLOW_STATIC_ANALYSIS:
+    description: "If set to true, triggers the static analysis workflow."
+    value: "false"
+
+  TRIGGER_WORKFLOW_SETUP_AWS:
+    description: "If set to true, triggers the AWS OIDC setup test workflow."
+    value: "false"
+
+  TRIGGER_WORKFLOW_INFRA_CI_MR_STACK_NON_DIST:
+    description: "If set to true, triggers the CI (Plan) for Stack NonDistributable on Merge Requests."
+    value: "false"
+
+  TRIGGER_WORKFLOW_INFRA_ONMASTER_STACK_NONDIST:
+    description: "If set to true, triggers the Apply for Stack NonDistributable on Master push."
+    value: "false"
+
+
+include:
+  # workflows
+  # 1. Workflow for CI of the CI (Dagger)
+  - local: ".gitlab/workflows/workflow_pipeline_build.yml"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/'
+        changes:
+          - pipeline/infra/**/*
+      - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH'
+        changes:
+          - pipeline/infra/**/*
+      - if: '$TRIGGER_WORKFLOW_PIPELINE_BUILD == "true"'
+      - when: never
+  # 2. Workflow for CI, on Infrastructrure as code for Terraform only
+  - local: ".gitlab/workflows/workflow_infra_terraform_ci.yml"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/'
+        changes:
+          - infra/terraform/**/*
+      - if: '$TRIGGER_WORKFLOW_INFRA_CI_TERRAFORM == "true"'
+      - when: never
+  # 3. Workflow for CI, on Infrastructrure as code for Stacks only
+  - local: ".gitlab/workflows/workflow_infra_stacks_ci.yml"
+    rules:
+      - if: '$TRIGGER_WORKFLOW_INFRA_CI_STACKS == "true"'
+      - when: never
+  # 4. Workflow for manual AWS OIDC setup test
+  - local: ".gitlab/workflows/workflow_setup_aws.yml"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/'
+        changes:
+          - ".gitlab/workflows/**/*.yml"
+          - ".gitlab-ci.yml"
+      - if: '$CI_PIPELINE_SOURCE == "push"'
+        changes:
+          - ".gitlab/workflows/**/*.yml"
+          - ".gitlab-ci.yml"
+      - if: '$TRIGGER_WORKFLOW_SETUP_AWS == "true"'
+      - when: never
+
+  # 5. Workflow for CI (Plan) for Stack NonDistributable on Merge Requests
+  - local: ".gitlab/workflows/workflow_infra_stack_mr_nondist.yml"
+    rules:
+      - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:/'
+        changes:
+          - "infra/terragrunt/dev/non-distributable/**/*"
+          - "infra/terragrunt/prod/non-distributable/**/*"
+          - "infra/terragrunt/_shared/_units/**/*"
+      - if: '$TRIGGER_WORKFLOW_INFRA_CI_MR_STACK_NON_DIST == "true"'
+      - when: never
+
+stages:
+  # Setup stages, only required for gitlab's internal needs
+  - setup
+
+  # Dagger-CI specific stages
+  - dagger-ci
+
+  # Infra specific stages
+  - infra-ci-terraform
+  - infra-ci-stacks-plan
+
+  # Stages per Stack
+  - stack-nondist-plan
+  - stack-nondist-apply
+
+  # Infra specific stages
+  - pipeline-infra
+
+# This is a placeholder job that is required by GitLab CI to avoid the error:
+# "job config should contain at least one visible job". This job is intentionally
+# configured to never run (rules: when: never) and serves as a fallback to ensure
+# the pipeline configuration remains valid even when no other jobs are active.
+# The job is placed in the 'setup' stage but is purely administrative and doesn't
+# perform any actual setup tasks.
+default_job:
+  stage: setup
+  script:
+    - echo "This is a default job"
+  rules:
+    - when: never

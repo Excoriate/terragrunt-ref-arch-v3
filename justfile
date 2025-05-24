@@ -9,9 +9,9 @@ TERRAFORM_MODULES_DIR := "./infra/terraform/modules"
 
 # 📍 Default values for Terragrunt environment, stack, and unit
 # TODO: Change it accordingly to the environment, stack, and unit you are working on
-DEFAULT_TG_ENV := "global"
-DEFAULT_TG_STACK := "dni"
-DEFAULT_TG_UNIT := "dni_generator"
+# 📍 Terragrunt default(s)
+TG_DEFAULT_STACK := "non-distributable"
+TG_DEFAULT_UNIT := "random-string-generator"
 
 # 🐚 Shell configuration
 # Use bash with strict error handling to prevent silent failures
@@ -29,11 +29,6 @@ set dotenv-load
 default:
     @just --list
 
-# 🌿 Start Nix Development Shell
-dev:
-    @echo "🌿 Starting Nix Development Shell for Terragrunt Reference Architecture 🚀"
-    @nix develop . --impure --extra-experimental-features nix-command --extra-experimental-features flakes
-
 # 🗑️ Clean macOS system files
 # Removes .DS_Store files that can cause unnecessary version control noise
 # Helps maintain a clean repository across different operating systems
@@ -50,28 +45,6 @@ hooks-install:
 hooks-run:
     @echo "🔍 Running pre-commit hooks from .pre-commit-config.yaml..."
     @./scripts/hooks/pre-commit-init.sh run
-
-# 🛠️ Allow direnv to run
-# Ensures that direnv is allowed to run in the current directory
-# Useful for managing environment variables and configurations
-allow-direnv:
-    @echo "🔒 Allow direnv to run..."
-    @direnv allow
-
-# 🔄 Reload direnv environment
-# Manually reload the direnv environment when needed
-reload-env:
-    @echo "🔄 Manually reloading direnv environment..."
-    @direnv reload
-
-# 🧹 Clean direnv cache
-# Removes the direnv cache to force a fresh environment build
-# Useful when experiencing issues with the development environment
-clean-direnv:
-    @echo "🧹 Cleaning direnv cache..."
-    @rm -rf .direnv
-    @direnv allow
-    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
 
 # 🔍 Run Terraform command for a specific module
 [working-directory:'infra/terraform/modules']
@@ -172,6 +145,7 @@ tg-run env stack unit cmd="init":
 tg-run-all env stack cmd="init":
     @cd {{env}}/{{stack}} && terragrunt run-all {{cmd}} $(if [ "{{cmd}}" = "apply" ] || [ "{{cmd}}" = "destroy" ]; then echo "--auto-approve"; fi)
 
+
 # 🔨 Build the Dagger pipeline
 [working-directory:'pipeline/infra']
 pipeline-infra-build:
@@ -219,17 +193,22 @@ pipeline-infra-tg-exec args="": (pipeline-infra-build)
 
 # 🔨 Run a Terragrunt job with custom arguments
 [working-directory:'pipeline/infra']
-pipeline-infra-tg-ci-static env="global" stack="dni": (pipeline-infra-build)
+pipeline-infra-tg-ci-static env="global" stack="non-distributable": (pipeline-infra-build)
     @echo "🔄 Running Terragrunt CI checks through Dagger"
     @echo "🌍 Environment: {{env}} | 📚 Stack: {{stack}}"
     @dagger call job-citg-stack-static-analysis \
-        --aws-region eu-west-1 \
         --aws-access-key-id env:AWS_ACCESS_KEY_ID \
         --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
-        --load-dot-env \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
         --no-cache \
         --environment "{{env}}" \
-        --stack "{{stack}}"
+        --stack "{{stack}}" \
+        --git-ssh $SSH_AUTH_SOCK
 
     @echo "✅ Terragrunt CI checks completed successfully on environment: {{env}} | 📚 Stack: {{stack}}"
 
@@ -241,10 +220,14 @@ pipeline-infra-tg-stack env="dev" stack="non-distributable" tg-cmd="validate" tg
     @echo "🔨 Terragrunt command: {{tg-cmd}}"
     @echo "🔨 Terragrunt command arguments: {{tg-cmd-args}}"
     @dagger call job-tg-stack \
-        --aws-region eu-west-1 \
         --aws-access-key-id env:AWS_ACCESS_KEY_ID \
         --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
-        --load-dot-env \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
         --no-cache \
         --environment "{{env}}" \
         --stack "{{stack}}" \
@@ -253,3 +236,33 @@ pipeline-infra-tg-stack env="dev" stack="non-distributable" tg-cmd="validate" tg
         --tg-cmd-args "{{tg-cmd-args}}"
 
     @echo "✅ Terragrunt stack completed successfully on environment: {{env}} | 📚 Stack: {{stack}}"
+
+pipeline-infra-tg-stack-exec-non-distributable-global-plan : (pipeline-infra-tg-stack "global" "non-distributable" "plan" "")
+pipeline-infra-tg-stack-exec-non-distributable-global-apply : (pipeline-infra-tg-stack "global" "non-distributable" "apply" "")
+pipeline-infra-tg-stack-exec-non-distributable-global-destroy : (pipeline-infra-tg-stack "global" "non-distributable" "destroy" "")
+
+# 🔨 Run a Terragrunt CD pipeline for the stack non-distributable
+[working-directory:'pipeline/infra']
+pipeline-infra-tg-cd-stack-non-distributable env="dev" action="plan": (pipeline-infra-build)
+    @echo "🔄 Running Terragrunt CD pipeline through Dagger"
+    @echo "🌍 Environment: {{env}} | 📚 Stack: non-distributable"
+    @echo "⚙️ Run Action: {{action}}"
+    @dagger call job-cdtg-stack-non-distributable \
+        --aws-access-key-id env:AWS_ACCESS_KEY_ID \
+        --aws-secret-access-key env:AWS_SECRET_ACCESS_KEY \
+        --deployment-region env:TG_STACK_DEPLOYMENT_REGION \
+        --load-dot-env-file \
+        --tf-version-file env:TG_STACK_TF_VERSION \
+        --remote-state-bucket env:TG_STACK_REMOTE_STATE_BUCKET_NAME \
+        --remote-state-lock-table env:TG_STACK_REMOTE_STATE_LOCK_TABLE \
+        --remote-state-region env:TG_STACK_REMOTE_STATE_REGION \
+        --no-cache \
+        --environment "{{env}}" \
+        --run-{{action}} \
+        --git-ssh $SSH_AUTH_SOCK
+
+    @echo "✅ Terragrunt CD pipeline completed successfully on environment: {{env}} | 📚 Stack: non-distributable"
+
+pipeline-infra-tg-cd-stack-non-distributable-global-apply : (pipeline-infra-tg-cd-stack-non-distributable "global" "apply")
+pipeline-infra-tg-cd-stack-non-distributable-global-destroy: (pipeline-infra-tg-cd-stack-non-distributable "global" "destroy")
+pipeline-infra-tg-cd-stack-non-distributable-global-plan : (pipeline-infra-tg-cd-stack-non-distributable "global" "plan")
