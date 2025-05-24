@@ -14,6 +14,10 @@ repos:
             CHANGELOG\.md
           )$
       - id: check-yaml
+        exclude: >
+          (?x)^(
+            \.gitlab/.*|
+          )$
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-executables-have-shebangs

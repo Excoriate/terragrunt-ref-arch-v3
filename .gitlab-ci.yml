@@ -17,7 +17,8 @@ variables:
     value: ""
 
   NOCACHE:
-    description: "If set to true, forces dagger to run without using its cache (cache burst). Useful for troubleshooting or ensuring fresh builds."
+    description: "If set to true, forces dagger to run without using its cache (cache burst). Useful for troubleshooting or
+      ensuring fresh builds."
     value: "false"
 
   DAGGER_VERSION:
@@ -63,7 +64,7 @@ include:
           - pipeline/infra/**/*
       - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME != $CI_DEFAULT_BRANCH'
         changes:
-            - pipeline/infra/**/*
+          - pipeline/infra/**/*
       - if: '$TRIGGER_WORKFLOW_PIPELINE_BUILD == "true"'
       - when: never
   # 2. Workflow for CI, on Infrastructrure as code for Terraform only

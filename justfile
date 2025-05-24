@@ -29,11 +29,6 @@ set dotenv-load
 default:
     @just --list
 
-# 🌿 Start Nix Development Shell
-dev:
-    @echo "🌿 Starting Nix Development Shell for Terragrunt Reference Architecture 🚀"
-    @nix develop . --impure --extra-experimental-features nix-command --extra-experimental-features flakes
-
 # 🗑️ Clean macOS system files
 # Removes .DS_Store files that can cause unnecessary version control noise
 # Helps maintain a clean repository across different operating systems
@@ -50,28 +45,6 @@ hooks-install:
 hooks-run:
     @echo "🔍 Running pre-commit hooks from .pre-commit-config.yaml..."
     @./scripts/hooks/pre-commit-init.sh run
-
-# 🛠️ Allow direnv to run
-# Ensures that direnv is allowed to run in the current directory
-# Useful for managing environment variables and configurations
-allow-direnv:
-    @echo "🔒 Allow direnv to run..."
-    @direnv allow
-
-# 🔄 Reload direnv environment
-# Manually reload the direnv environment when needed
-reload-env:
-    @echo "🔄 Manually reloading direnv environment..."
-    @direnv reload
-
-# 🧹 Clean direnv cache
-# Removes the direnv cache to force a fresh environment build
-# Useful when experiencing issues with the development environment
-clean-direnv:
-    @echo "🧹 Cleaning direnv cache..."
-    @rm -rf .direnv
-    @direnv allow
-    @echo "✅ direnv cache cleaned. Environment will rebuild on next shell activation."
 
 # 🔍 Run Terraform command for a specific module
 [working-directory:'infra/terraform/modules']

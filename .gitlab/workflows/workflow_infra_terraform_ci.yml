@@ -1,3 +1,4 @@
+---
 include:
   - local: ".gitlab/utils/pipeline_auth.yml"
   - local: ".gitlab/utils/pipeline_infra.yml"
